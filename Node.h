@@ -8,9 +8,9 @@
 
 class Connection;
 
-class Node : public std::enable_shared_from_this<Node> {
+class Node {
+private:
   using ConnectionPtr = std::shared_ptr<Connection>;
-  using Port = unsigned short;
 
 public:
   Node(boost::asio::io_service& io_service);

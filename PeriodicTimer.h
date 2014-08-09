@@ -4,6 +4,7 @@
 #include <functional>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "constants.h"
+#include "DestroyGuard.h"
 
 class PeriodicTimer {
   using Error = boost::system::error_code;
@@ -11,21 +12,16 @@ class PeriodicTimer {
 public:
   template<class Callback>
   PeriodicTimer(boost::asio::io_service& ios, Callback&& callback)
-    : _was_destroyed(new bool(false))
-    , _timer(ios)
+    : _timer(ios)
     , _callback(callback)
   {
-    auto was_destroyed = _was_destroyed;
+    auto destroyed = _destroy_guard.indicator();
 
     // Do first tick as soon as possible.
-    ios.post([this, was_destroyed]() {
-        if (*was_destroyed) return;
+    ios.post([this, destroyed]() {
+        if (destroyed) return;
         on_timeout();
         });
-  }
-
-  ~PeriodicTimer() {
-    *_was_destroyed = true;
   }
 
 private:
@@ -33,21 +29,21 @@ private:
     using namespace boost::posix_time;
 
     // Carefull, the callback may destroy this object.
-    auto was_destroyed = _was_destroyed;
+    auto destroyed = _destroy_guard.indicator();
     auto callback_copy = _callback;
     callback_copy();
-    if (*was_destroyed) return;
+    if (destroyed) return;
 
     _timer.expires_from_now(milliseconds(PING_TIMEOUT_MS));
 
-    _timer.async_wait([this, was_destroyed](Error) {
-        if (*was_destroyed) return;
+    _timer.async_wait([this, destroyed](Error) {
+        if (destroyed) return;
         on_timeout();
         });
   }
 
 private:
-  std::shared_ptr<bool>       _was_destroyed;
+  DestroyGuard                _destroy_guard;
   boost::asio::deadline_timer _timer;
   std::function<void()>       _callback;
 };
