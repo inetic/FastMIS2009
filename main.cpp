@@ -13,41 +13,17 @@ using namespace std;
 using Error = boost::system::error_code;
 
 //------------------------------------------------------------------------------
-void kill_node_after_timeout(Node& node) {
-  auto timer = make_shared<asio::deadline_timer>
-    ( node.get_io_service()
-    , pstime::milliseconds(5*PING_TIMEOUT_MS));
-
-  timer->async_wait([timer, &node](Error) {
-      node.shutdown();
-      });
-}
-
-//------------------------------------------------------------------------------
-// TODO: For some reason this will cause memory leaks.
-BOOST_AUTO_TEST_CASE(one_node1) {
-  asio::io_service ios;
-
-  Node node(ios);
-  node.start();
-
-  asio::deadline_timer timer(ios, pstime::milliseconds(5*PING_TIMEOUT_MS));
-
-  timer.async_wait([&](Error) {
-      node.shutdown();
-      });
-
-  ios.run();
-}
-
-//------------------------------------------------------------------------------
 BOOST_AUTO_TEST_CASE(one_node) {
   asio::io_service ios;
 
   Node node(ios);
   node.start();
 
-  kill_node_after_timeout(node);
+  asio::deadline_timer timer(ios, pstime::milliseconds(2*PING_TIMEOUT_MS));
+
+  timer.async_wait([&](Error) {
+      node.shutdown();
+      });
 
   ios.run();
 }
@@ -62,8 +38,12 @@ BOOST_AUTO_TEST_CASE(two_nodes) {
   node0.start();
   node1.start();
 
-  kill_node_after_timeout(node0);
-  kill_node_after_timeout(node1);
+  asio::deadline_timer timer(ios, pstime::milliseconds(2*PING_TIMEOUT_MS));
+
+  timer.async_wait([&](Error) {
+      node0.shutdown();
+      node1.shutdown();
+      });
 
   ios.run();
 }
@@ -80,7 +60,7 @@ BOOST_AUTO_TEST_CASE(two_connected_nodes) {
 
   node0.connect(node1.local_endpoint());
 
-  asio::deadline_timer timer(ios, pstime::milliseconds(5*PING_TIMEOUT_MS));
+  asio::deadline_timer timer(ios, pstime::milliseconds(3*PING_TIMEOUT_MS));
 
   timer.async_wait([&](Error) {
       BOOST_REQUIRE(node0.is_connected_to(node1.local_endpoint()));
@@ -108,7 +88,7 @@ BOOST_AUTO_TEST_CASE(disconnect_two_connected_nodes) {
 
   node0.connect(node1.local_endpoint());
 
-  asio::deadline_timer timer(ios, pstime::milliseconds(50*PING_TIMEOUT_MS));
+  asio::deadline_timer timer(ios, pstime::milliseconds(5*PING_TIMEOUT_MS));
 
   timer.async_wait([&](Error) {
       BOOST_REQUIRE(node0.is_connected_to(node1_ep));
