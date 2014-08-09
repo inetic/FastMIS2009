@@ -2,7 +2,7 @@
 
 #include "Node.h"
 #include "Connection.h"
-#include "MAX_DATAGRAM_SIZE.h"
+#include "constants.h"
 
 namespace asio = boost::asio;
 using udp = asio::ip::udp;
@@ -55,7 +55,8 @@ void Node::receive_data() {
 
 void Node::use_data(Endpoint sender, string&& data) {
   stringstream ss(data);
-  create_connection(sender);
+  auto& c = create_connection(sender);
+  c.keep_alive();
 }
 
 Connection& Node::create_connection(Endpoint endpoint) {
@@ -75,10 +76,11 @@ void Node::connect(Endpoint remote_endpoint) {
   create_connection(remote_endpoint);
 }
 
+void Node::disconnect(Endpoint remote_endpoint) {
+  _connections.erase(remote_endpoint);
+}
+
 bool Node::is_connected_to(Endpoint remote_endpoint) const {
-  if (remote_endpoint.address().is_unspecified()) {
-    remote_endpoint.address(asio::ip::address_v4::loopback());
-  }
-  return _connections.count(remote_endpoint) != 0;
+  return _connections.count(ID(remote_endpoint)) != 0;
 }
 

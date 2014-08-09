@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include "constants.h"
 
 class PeriodicTimer {
   using Error = boost::system::error_code;
@@ -31,11 +32,13 @@ private:
   void on_timeout() {
     using namespace boost::posix_time;
 
-    _callback();
-
-    _timer.expires_from_now(milliseconds(100));
-
+    // Carefull, the callback may destroy this object.
     auto was_destroyed = _was_destroyed;
+    auto callback_copy = _callback;
+    callback_copy();
+    if (*was_destroyed) return;
+
+    _timer.expires_from_now(milliseconds(PING_TIMEOUT_MS));
 
     _timer.async_wait([this, was_destroyed](Error) {
         if (*was_destroyed) return;

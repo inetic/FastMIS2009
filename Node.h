@@ -2,7 +2,9 @@
 #define __NODE_H__
 
 #include <map>
+#include <boost/uuid/uuid.hpp>
 #include "Endpoint.h"
+#include "ID.h"
 
 class Connection;
 
@@ -16,6 +18,7 @@ public:
   void start();
   void shutdown();
   void connect(Endpoint);
+  void disconnect(Endpoint);
 
   Endpoint local_endpoint() const { return _socket.local_endpoint(); }
   boost::asio::io_service& get_io_service() { return _io_service; }
@@ -41,11 +44,10 @@ private:
   Connection& create_connection(Endpoint);
 
 private:
-  boost::asio::io_service&          _io_service;
-  boost::asio::ip::udp::socket      _socket;
-  // TODO: Using Endpoint as ID is fishy, I should probably use
-  //       boost::uuid instead.
-  std::map<Endpoint, ConnectionPtr> _connections;
+  boost::uuids::uuid            _uuid;
+  boost::asio::io_service&      _io_service;
+  boost::asio::ip::udp::socket  _socket;
+  std::map<ID, ConnectionPtr>   _connections;
 };
 
 #endif // ifndef __NODE_H__
