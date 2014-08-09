@@ -5,13 +5,8 @@ namespace asio = boost::asio;
 using udp = asio::ip::udp;
 using namespace std;
 
-Connection::Connection(asio::io_service& ios)
-  : _io_service(ios)
-  , _socket(ios, udp::endpoint(udp::v4(), 0)) // Assign random port
+Connection::Connection(Endpoint remote_endpoint)
+  : _remote_endpoint(remote_endpoint)
 {
-  cout << _socket.local_endpoint().port() << endl;
-}
-
-void Connection::start(const asio::ip::udp::endpoint& remote_endpoint) {
 }
 

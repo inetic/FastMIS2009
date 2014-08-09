@@ -1,6 +1,6 @@
 #### PROJECT SETTINGS ####
 # The name of the executable to be created
-BIN_NAME := p2p-leader
+BIN_NAME := fastmis
 # Compiler used
 CXX ?= g++
 # Extension of source files used in the project
@@ -16,7 +16,7 @@ DCOMPILE_FLAGS = -D DEBUG
 # Add additional include paths
 INCLUDES = -I $(SRC_PATH)/
 # General linker settings
-LINK_FLAGS = -lboost_program_options -lboost_system
+LINK_FLAGS = -lboost_program_options -lboost_system -lboost_unit_test_framework
 # Additional release-specific linker settings
 RLINK_FLAGS = 
 # Additional debug-specific linker settings

@@ -2,19 +2,16 @@
 #define __CONNECTION_H__
 
 #include <boost/asio.hpp>
+#include "Endpoint.h"
 
-class Connection : public std::enable_shared_from_this<Connection> {
+class Connection {
 public:
-  Connection(boost::asio::io_service&);
-
-  void start(const boost::asio::ip::udp::endpoint& remote_endpoint);
+  Connection(Endpoint remote_endpoint);
 
 private:
-  void shutdown();
 
 private:
-  boost::asio::io_service&     _io_service;
-  boost::asio::ip::udp::socket _socket;
+  const Endpoint _remote_endpoint;
 };
 
 #endif // ifndef __CONNECTION_H__
