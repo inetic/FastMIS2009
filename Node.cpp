@@ -3,6 +3,7 @@
 #include "Node.h"
 #include "Connection.h"
 #include "constants.h"
+#include "protocol.h"
 
 namespace asio = boost::asio;
 using udp = asio::ip::udp;
@@ -54,9 +55,15 @@ void Node::receive_data() {
 }
 
 void Node::use_data(Endpoint sender, string&& data) {
-  stringstream ss(data);
   auto& c = create_connection(sender);
-  c.keep_alive();
+
+  try {
+    c.receive_data(data);
+  }
+  catch (const runtime_error& e) {
+    cout << "Problem reading message: " << e.what() << endl;
+    disconnect(sender);
+  }
 }
 
 Connection& Node::create_connection(Endpoint endpoint) {
@@ -82,5 +89,16 @@ void Node::disconnect(Endpoint remote_endpoint) {
 
 bool Node::is_connected_to(Endpoint remote_endpoint) const {
   return _connections.count(ID(remote_endpoint)) != 0;
+}
+
+void Node::send_to(const Message& msg, Endpoint destination) {
+  stringstream ss;
+  ss << msg.label() << " ";
+  msg.to_stream(ss);
+
+  auto data = make_shared<string>(ss.str());
+  _socket.async_send_to( asio::buffer(*data)
+                       , destination
+                       , [data](boost::system::error_code, size_t) {});
 }
 

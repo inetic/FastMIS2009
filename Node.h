@@ -7,6 +7,7 @@
 #include "ID.h"
 
 class Connection;
+class Message;
 
 class Node {
 private:
@@ -25,18 +26,7 @@ public:
 
   bool is_connected_to(Endpoint) const;
 
-  template<class Message>
-  void send_to(const Message& msg, Endpoint destination) {
-    using namespace std;
-    using namespace boost;
-
-    stringstream ss;
-    ss << Message::label() << " " << msg;
-    auto data = make_shared<string>(ss.str());
-    _socket.async_send_to( asio::buffer(*data)
-                         , destination
-                         , [data](system::error_code, size_t) {});
-  }
+  void send_to(const Message& msg, Endpoint destination);
 
 private:
   void receive_data();
