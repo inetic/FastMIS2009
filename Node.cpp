@@ -1,6 +1,7 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include "Node.h"
+#include "Connection.h"
 #include "MAX_DATAGRAM_SIZE.h"
 
 namespace asio = boost::asio;
@@ -20,6 +21,7 @@ void Node::start() {
 
 void Node::shutdown() {
   _socket.close();
+  _connections.clear();
 }
 
 void Node::receive_data() {
@@ -51,8 +53,9 @@ void Node::receive_data() {
       });
 }
 
-void Node::use_data(Endpoint sender, string&&) {
-  auto& connection = create_connection(sender);
+void Node::use_data(Endpoint sender, string&& data) {
+  stringstream ss(data);
+  create_connection(sender);
 }
 
 Connection& Node::create_connection(Endpoint endpoint) {
@@ -62,13 +65,20 @@ Connection& Node::create_connection(Endpoint endpoint) {
     return *c_i->second;
   }
 
-  auto c = make_shared<Connection>(endpoint);
+  auto c = make_shared<Connection>(*this, endpoint);
   _connections[endpoint] = c;
 
   return *c;
 }
 
-void Node::connect_to(Endpoint remote_endpoint) {
+void Node::connect(Endpoint remote_endpoint) {
   create_connection(remote_endpoint);
+}
+
+bool Node::is_connected_to(Endpoint remote_endpoint) const {
+  if (remote_endpoint.address().is_unspecified()) {
+    remote_endpoint.address(asio::ip::address_v4::loopback());
+  }
+  return _connections.count(remote_endpoint) != 0;
 }
 

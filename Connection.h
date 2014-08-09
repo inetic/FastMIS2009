@@ -3,15 +3,21 @@
 
 #include <boost/asio.hpp>
 #include "Endpoint.h"
+#include "PeriodicTimer.h"
+
+class Node;
 
 class Connection {
 public:
-  Connection(Endpoint remote_endpoint);
+  Connection(Node&, Endpoint remote_endpoint);
 
 private:
+  void on_tick();
 
 private:
-  const Endpoint _remote_endpoint;
+  Node&               _node;
+  const Endpoint      _remote_endpoint;
+  PeriodicTimer       _periodic_timer;
 };
 
 #endif // ifndef __CONNECTION_H__
