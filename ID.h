@@ -23,7 +23,16 @@ public:
   }
 
 private:
+  friend std::ostream& operator<<(std::ostream&, const ID&);
+
   boost::asio::ip::udp::endpoint endpoint;
 };
+
+#ifndef _NDEBUG
+inline std::ostream& operator<<(std::ostream& os, const ID& id) {
+  return os << id.endpoint.port();
+}
+
+#endif
 
 #endif // ifndef __ID_H__

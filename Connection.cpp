@@ -41,16 +41,17 @@ void Connection::on_tick() {
 //------------------------------------------------------------------------------
 template<class Msg, class... Args>
 void Connection::schedule_send(Args... args) {
-  _tx_messages.push_back(new Msg( ++_tx_sequence_id
-                                , _rx_sequence_id
-                                , args...));
+  Msg* msg = new Msg(++_tx_sequence_id, _rx_sequence_id, args...);
+  cout << _node.id() << " Sending " << msg->label() << " " << *msg << endl;
+  _tx_messages.push_back(msg);
 }
 
 void Connection::receive_data(const std::string& data) {
   std::stringstream ss(data);
 
   dispatch_message(ss
-      , [&](const Ping& ping) { receive(ping); });
+      , [&](const Ping& ping)   { receive(ping); }
+      , [&](const Start& start) { receive(start); });
 }
 
 //------------------------------------------------------------------------------
@@ -67,8 +68,20 @@ template<class Msg> void Connection::receive(const Msg& msg) {
 }
 
 //------------------------------------------------------------------------------
+void Connection::start_fast_mis(float r) {
+  schedule_send<Start>(r);
+}
+
+//------------------------------------------------------------------------------
 void Connection::use_message(const Ping& ping) {
-  cout << "Received ping " << ping << endl;
+  cout << _node.id() << " Received ping " << ping << endl;
+}
+
+//------------------------------------------------------------------------------
+void Connection::use_message(const Start& start) {
+  cout << _node.id() << " Received start " << start << endl;
+  random_number.reset(start.random_number);
+  _node.start_fast_mis();
 }
 
 //------------------------------------------------------------------------------

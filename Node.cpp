@@ -1,4 +1,5 @@
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/random/random_device.hpp>
 
 #include "Node.h"
 #include "Connection.h"
@@ -101,4 +102,62 @@ void Node::send_to(const Message& msg, Endpoint destination) {
                        , destination
                        , [data](boost::system::error_code, size_t) {});
 }
+
+static float random_number() {
+  typedef boost::random_device Dev;
+  Dev generate;
+  Dev::result_type random_number = generate();
+  return (float) (random_number - Dev::min()) / Dev::max();
+}
+
+bool Node::received_random_number_from_all_peers() const {
+  for (const auto& pair : _connections) {
+    const auto& c = *pair.second;
+    if (!c.random_number) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool Node::smaller_than_others(float my_number) const {
+  for (const auto& pair : _connections) {
+    const auto& c = *pair.second;
+    if (c.random_number && my_number >= c.random_number) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void Node::start_fast_mis() {
+  cout << id() << " start_fast_mis\n";
+
+  if (!_my_random_number) {
+    cout << id() << " start_fast_mis choosing random number\n";
+    _my_random_number = random_number();
+
+    for (const auto& pair : _connections) {
+      auto& c = *pair.second;
+      if (c.knows_my_number) { continue; }
+      c.knows_my_number = true;
+      c.start_fast_mis(*_my_random_number);
+    }
+  }
+
+  if (!received_random_number_from_all_peers()) {
+    return;
+  }
+
+  if (smaller_than_others(*_my_random_number)) {
+    cout << id() << " Leader" << endl;
+  }
+  else {
+    cout << id() << " Not leader" << endl;
+  }
+}
+
+// So that I can use std::unique_ptr with forward declared template
+// parameter in Node definition.
+Node::~Node() {}
 

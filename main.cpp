@@ -109,4 +109,33 @@ BOOST_AUTO_TEST_CASE(disconnect_two_connected_nodes) {
 }
 
 //------------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(two_nodes_fast_mis) {
+  asio::io_service ios;
+
+  Node node0(ios);
+  Node node1(ios);
+
+  node0.start();
+  node1.start();
+
+  auto node0_ep = node0.local_endpoint();
+  auto node1_ep = node1.local_endpoint();
+
+  node0.connect(node1.local_endpoint());
+  node0.start_fast_mis();
+
+  asio::deadline_timer timer(ios, pstime::milliseconds(5*PING_TIMEOUT_MS));
+
+  timer.async_wait([&](Error) {
+      BOOST_REQUIRE(node0.is_connected_to(node1_ep));
+      BOOST_REQUIRE(node1.is_connected_to(node0_ep));
+
+      node0.shutdown();
+      node1.shutdown();
+      });
+
+  ios.run();
+}
+
+//------------------------------------------------------------------------------
 
