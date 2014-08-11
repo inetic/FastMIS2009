@@ -53,10 +53,13 @@ void Connection::receive_data(const std::string& data) {
 
 //------------------------------------------------------------------------------
 template<class Msg> void Connection::receive(const Msg& msg) {
+  assert(msg.sequence_number <= _rx_sequence_id + 1);
+
+  ack_message(msg.ack_sequence_number);
+
   if (msg.sequence_number == _rx_sequence_id + 1) {
     keep_alive();
     _rx_sequence_id = msg.sequence_number;
-    ack_message(msg.ack_sequence_number);
     use_message(msg);
   }
   else if (msg.sequence_number == _rx_sequence_id) {
