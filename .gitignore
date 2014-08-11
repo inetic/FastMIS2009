@@ -4,3 +4,4 @@ fastmis
 bin/
 build/
 log
+.debug_time

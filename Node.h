@@ -2,10 +2,12 @@
 #define __NODE_H__
 
 #include <map>
+#include <set>
 #include <boost/uuid/uuid.hpp>
 #include <boost/optional.hpp>
 #include "Endpoint.h"
 #include "ID.h"
+#include "LeaderStatus.h"
 
 class Connection;
 class Message;
@@ -19,9 +21,12 @@ private:
 public:
   Node(boost::asio::io_service& io_service);
 
-  ID   id() const { return ID(_socket.local_endpoint()); }
+  Node(Node&&) = default;
+  Node(const Node&) = delete;
+  const Node& operator=(const Node&) = delete;
 
-  void start();
+  ID id() const { return _id; }
+
   void shutdown();
   void connect(Endpoint);
   void disconnect(Endpoint);
@@ -35,26 +40,55 @@ public:
 
   ~Node();
 
-  void start_fast_mis();
+  template<class Handler> void start_fast_mis(const Handler& handler) {
+    _on_algorithm_completed = handler;
+    start_fast_mis();
+  }
 
 private:
   void receive_data();
   void use_data(Endpoint sender, std::string&&);
   Connection& create_connection(Endpoint);
 
+  void on_receive_number();
+  void on_leader_status_changed();
+
   friend class Connection;
 
   bool smaller_than_others(float) const;
-  bool received_random_number_from_all_peers() const;
+  bool has_number_from_all() const;
+  bool has_status1_from_all() const;
+  bool has_status2_from_all() const;
+  bool has_leader_neighbor() const;
+
+  void start_fast_mis();
+  void on_received_start();
+  void on_status1_changed();
+  void on_status2_changed();
+
+  void on_algorithm_completed();
+  template<class Message, class... Args> void broadcast(Args...);
+
+  template<class F> void each_contender(const F&);
+  template<class F> void each_contender(const F&) const;
 
 private:
-  boost::uuids::uuid            _uuid;
+  friend std::ostream& operator<<(std::ostream&, const Node&);
+
   boost::asio::io_service&      _io_service;
   boost::asio::ip::udp::socket  _socket;
+  ID                            _id;
   Connections                   _connections;
+  bool                          _was_shut_down;
 
   // FastMIS related data.
+  LeaderStatus           _leader_status = undecided;
+  bool                   _fast_mis_started = false;
+  std::set<ID>           _contenders;
   boost::optional<float> _my_random_number;
+  std::function<void()>  _on_algorithm_completed;
 };
+
+std::ostream& operator<<(std::ostream& os, const Node&);
 
 #endif // ifndef __NODE_H__

@@ -31,27 +31,24 @@ void Connection::on_tick() {
   ++_missed_ping_count;
 
   if (!_tx_messages.empty()) {
+    _tx_messages.front().ack_sequence_number = _rx_sequence_id;
     _node.send_to(_tx_messages.front(), _remote_endpoint);
   }
   else {
-    _node.send_to(Ping(_tx_sequence_id, _rx_sequence_id), _remote_endpoint);
+    _node.send_to(PingMsg(_tx_sequence_id, _rx_sequence_id), _remote_endpoint);
   }
 }
 
 //------------------------------------------------------------------------------
-template<class Msg, class... Args>
-void Connection::schedule_send(Args... args) {
-  Msg* msg = new Msg(++_tx_sequence_id, _rx_sequence_id, args...);
-  cout << _node.id() << " Sending " << msg->label() << " " << *msg << endl;
-  _tx_messages.push_back(msg);
-}
-
 void Connection::receive_data(const std::string& data) {
   std::stringstream ss(data);
 
   dispatch_message(ss
-      , [&](const Ping& ping)   { receive(ping); }
-      , [&](const Start& start) { receive(start); });
+      , [&](const PingMsg& msg)    { receive(msg); }
+      , [&](const StartMsg& msg)   { receive(msg); }
+      , [&](const NumberMsg& msg)  { receive(msg); }
+      , [&](const Status1Msg& msg) { receive(msg); }
+      , [&](const Status2Msg& msg) { receive(msg); });
 }
 
 //------------------------------------------------------------------------------
@@ -68,20 +65,34 @@ template<class Msg> void Connection::receive(const Msg& msg) {
 }
 
 //------------------------------------------------------------------------------
-void Connection::start_fast_mis(float r) {
-  schedule_send<Start>(r);
+void Connection::use_message(const PingMsg&) {
 }
 
 //------------------------------------------------------------------------------
-void Connection::use_message(const Ping& ping) {
-  cout << _node.id() << " Received ping " << ping << endl;
+void Connection::use_message(const StartMsg& msg) {
+  //cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
+  _node.on_received_start();
 }
 
 //------------------------------------------------------------------------------
-void Connection::use_message(const Start& start) {
-  cout << _node.id() << " Received start " << start << endl;
-  random_number.reset(start.random_number);
-  _node.start_fast_mis();
+void Connection::use_message(const NumberMsg& msg) {
+  //cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
+  random_number.reset(msg.random_number);
+  _node.on_receive_number();
+}
+
+//------------------------------------------------------------------------------
+void Connection::use_message(const Status1Msg& msg) {
+  //cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
+  leader_status1 = msg.leader_status;
+  _node.on_status1_changed();
+}
+
+//------------------------------------------------------------------------------
+void Connection::use_message(const Status2Msg& msg) {
+  //cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
+  leader_status2 = msg.leader_status;
+  _node.on_status2_changed();
 }
 
 //------------------------------------------------------------------------------
@@ -94,6 +105,9 @@ void Connection::ack_message(uint32_t ack_sequence_number) {
   if (_tx_messages.empty()) return;
 
   if (_tx_messages.front().sequence_number == ack_sequence_number) {
+    cout << _node.id() << " acked " << _tx_messages.front().label() << " ";
+    _tx_messages.front().to_stream(cout);
+    cout << "\n";
     _tx_messages.pop_front();
   }
 }
