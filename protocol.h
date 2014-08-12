@@ -88,46 +88,46 @@ inline std::ostream& operator<<(std::ostream& os, const NumberMsg& msg) {
 }
 
 //------------------------------------------------------------------------------
-struct Status1Msg : MessageTemplate<Status1Msg> {
-  std::string label() const override { return "status1"; }
+struct StatusMsg : MessageTemplate<StatusMsg> {
+  std::string label() const override { return "status"; }
 
   LeaderStatus leader_status;
 
-  Status1Msg(uint32_t sequence_number, uint32_t ack_sequence_number
+  StatusMsg(uint32_t sequence_number, uint32_t ack_sequence_number
        , LeaderStatus leader_status)
     : MessageTemplate(sequence_number, ack_sequence_number)
     , leader_status(leader_status)
   {}
 
-  Status1Msg(std::istream& is) : MessageTemplate(is) {
+  StatusMsg(std::istream& is) : MessageTemplate(is) {
     is >> leader_status;
   }
 };
 
 inline std::ostream& operator<<( std::ostream& os
-                               , const Status1Msg& msg) {
+                               , const StatusMsg& msg) {
   return os << static_cast<const Message&>(msg) << " " << msg.leader_status;
 }
 
 //------------------------------------------------------------------------------
-struct Status2Msg : MessageTemplate<Status2Msg> {
-  std::string label() const override { return "status2"; }
+struct ResultMsg : MessageTemplate<ResultMsg> {
+  std::string label() const override { return "result"; }
 
   LeaderStatus leader_status;
 
-  Status2Msg(uint32_t sequence_number, uint32_t ack_sequence_number
+  ResultMsg(uint32_t sequence_number, uint32_t ack_sequence_number
        , LeaderStatus leader_status)
     : MessageTemplate(sequence_number, ack_sequence_number)
     , leader_status(leader_status)
   {}
 
-  Status2Msg(std::istream& is) : MessageTemplate(is) {
+  ResultMsg(std::istream& is) : MessageTemplate(is) {
     is >> leader_status;
   }
 };
 
 inline std::ostream& operator<<( std::ostream& os
-                               , const Status2Msg& msg) {
+                               , const ResultMsg& msg) {
   return os << static_cast<const Message&>(msg) << " " << msg.leader_status;
 }
 
@@ -135,15 +135,15 @@ inline std::ostream& operator<<( std::ostream& os
 template< typename PingHandler
         , typename StartHandler
         , typename NumberHandler
-        , typename Status1Handler
-        , typename Status2Handler
+        , typename StatusHandler
+        , typename ResultHandler
         >
 void dispatch_message( std::istream& is
                      , const PingHandler&    ping_handler
                      , const StartHandler&   start_handler
                      , const NumberHandler&  random_number_handler
-                     , const Status1Handler& status1_handler
-                     , const Status2Handler& status2_handler) {
+                     , const StatusHandler&  status_handler
+                     , const ResultHandler&  result_handler) {
   using namespace std;
 
   string label;
@@ -158,11 +158,11 @@ void dispatch_message( std::istream& is
   else if (label == "random_number") {
     random_number_handler(NumberMsg(is));
   }
-  else if (label == "status1") {
-    status1_handler(Status1Msg(is));
+  else if (label == "status") {
+    status_handler(StatusMsg(is));
   }
-  else if (label == "status2") {
-    status2_handler(Status2Msg(is));
+  else if (label == "result") {
+    result_handler(ResultMsg(is));
   }
   else {
     throw runtime_error("unrecognized message label");

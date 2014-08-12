@@ -21,6 +21,24 @@ Connection::Connection(Node& node, Endpoint remote_endpoint)
 }
 
 //------------------------------------------------------------------------------
+void Connection::send(const Message& msg) {
+  stringstream ss;
+  ss << msg.label() << " ";
+  msg.to_stream(ss);
+
+  //if (msg.label() != "ping") {
+  //  cout << _node.id() << " -> " << id() << " " << msg.label() << " ";
+  //  msg.to_stream(cout);
+  //  cout << " " << endl;
+  //}
+
+  auto data = make_shared<string>(ss.str());
+  _node.socket().async_send_to( asio::buffer(*data)
+                              , _remote_endpoint
+                              , [data](boost::system::error_code, size_t) {});
+}
+
+//------------------------------------------------------------------------------
 void Connection::on_tick() {
   if (_missed_ping_count > MAX_MISSED_PING_COUNT) {
     // Disonnection will destroy this object, so make sure you
@@ -32,10 +50,10 @@ void Connection::on_tick() {
 
   if (!_tx_messages.empty()) {
     _tx_messages.front().ack_sequence_number = _rx_sequence_id;
-    _node.send_to(_tx_messages.front(), _remote_endpoint);
+    send(_tx_messages.front());
   }
   else {
-    _node.send_to(PingMsg(_tx_sequence_id, _rx_sequence_id), _remote_endpoint);
+    send(PingMsg(_tx_sequence_id, _rx_sequence_id));
   }
 }
 
@@ -47,8 +65,8 @@ void Connection::receive_data(const std::string& data) {
       , [&](const PingMsg& msg)    { receive(msg); }
       , [&](const StartMsg& msg)   { receive(msg); }
       , [&](const NumberMsg& msg)  { receive(msg); }
-      , [&](const Status1Msg& msg) { receive(msg); }
-      , [&](const Status2Msg& msg) { receive(msg); });
+      , [&](const StatusMsg& msg)  { receive(msg); }
+      , [&](const ResultMsg& msg)  { receive(msg); });
 }
 
 //------------------------------------------------------------------------------
@@ -73,29 +91,29 @@ void Connection::use_message(const PingMsg&) {
 
 //------------------------------------------------------------------------------
 void Connection::use_message(const StartMsg& msg) {
-  //cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
+  cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
   _node.on_received_start();
 }
 
 //------------------------------------------------------------------------------
 void Connection::use_message(const NumberMsg& msg) {
-  //cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
+  cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
   random_number.reset(msg.random_number);
   _node.on_receive_number();
 }
 
 //------------------------------------------------------------------------------
-void Connection::use_message(const Status1Msg& msg) {
-  //cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
-  leader_status1 = msg.leader_status;
-  _node.on_status1_changed();
+void Connection::use_message(const StatusMsg& msg) {
+  cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
+  leader_status = msg.leader_status;
+  _node.on_receive_status();
 }
 
 //------------------------------------------------------------------------------
-void Connection::use_message(const Status2Msg& msg) {
-  //cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
-  leader_status2 = msg.leader_status;
-  _node.on_status2_changed();
+void Connection::use_message(const ResultMsg& msg) {
+  cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
+  leader_status = msg.leader_status;
+  _node.on_receive_result(*this);
 }
 
 //------------------------------------------------------------------------------
@@ -108,9 +126,9 @@ void Connection::ack_message(uint32_t ack_sequence_number) {
   if (_tx_messages.empty()) return;
 
   if (_tx_messages.front().sequence_number == ack_sequence_number) {
-    cout << _node.id() << " acked " << _tx_messages.front().label() << " ";
-    _tx_messages.front().to_stream(cout);
-    cout << "\n";
+    //cout << _node.id() << " acked " << _tx_messages.front().label() << " ";
+    //_tx_messages.front().to_stream(cout);
+    //cout << "\n";
     _tx_messages.pop_front();
   }
 }

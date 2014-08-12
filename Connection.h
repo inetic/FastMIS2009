@@ -35,10 +35,12 @@ private:
   void use_message(const PingMsg&);
   void use_message(const StartMsg&);
   void use_message(const NumberMsg&);
-  void use_message(const Status1Msg&);
-  void use_message(const Status2Msg&);
+  void use_message(const StatusMsg&);
+  void use_message(const ResultMsg&);
 
   void ack_message(uint32_t ack_sequence_number);
+
+  void send(const Message& msg);
 
 private:
   Node&           _node;
@@ -53,8 +55,7 @@ private:
 public:
   // FastMIS related data.
   boost::optional<float>        random_number;
-  boost::optional<LeaderStatus> leader_status1;
-  boost::optional<LeaderStatus> leader_status2;
+  boost::optional<LeaderStatus> leader_status;
 };
 
 #endif // ifndef __CONNECTION_H__

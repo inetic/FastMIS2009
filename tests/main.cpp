@@ -199,29 +199,33 @@ BOOST_AUTO_TEST_CASE(two_nodes_fast_mis) {
 
 //------------------------------------------------------------------------------
 BOOST_AUTO_TEST_CASE(graph) {
-  asio::io_service ios;
+  while (true) {
+    asio::io_service ios;
 
-  Graph graph(ios);
+    Graph graph(ios);
 
-  graph.generate_connected(10);
+    graph.generate_connected(4);
 
-  cout << "----------------------------------" << endl;
-  cout << graph << endl;
-  cout << "----------------------------------" << endl;
+    cout << "----------------------------------" << endl;
+    cout << graph << endl;
+    cout << "----------------------------------" << endl;
 
-  asio::deadline_timer timer(ios);
+    asio::deadline_timer timer(ios);
 
-  graph[0].start_fast_mis([&]() {
-      // Give time to other nodes to decide.
-      timer.expires_from_now(
-        milliseconds(PING_TIMEOUT_MS*MAX_MISSED_PING_COUNT));
+    graph[0].start_fast_mis([&]() {
+        // Give time to other nodes to decide.
+        timer.expires_from_now(
+          milliseconds(PING_TIMEOUT_MS*MAX_MISSED_PING_COUNT));
 
-      timer.async_wait([&](Error) {
-        graph.shutdown();
+        cout << "=============== done\n";
+        timer.async_wait([&](Error) {
+          cout << "Shutting down\n";
+          graph.shutdown();
+          });
         });
-      });
 
-  ios.run();
+    ios.run();
+  }
 }
 
 //------------------------------------------------------------------------------

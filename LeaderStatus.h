@@ -1,13 +1,13 @@
 #ifndef __LEADER_STATUS_H__
 #define __LEADER_STATUS_H__
 
-enum LeaderStatus { undecided, not_leader, leader };
+enum class LeaderStatus { undecided, follower, leader };
 
 inline std::ostream& operator<<(std::ostream& os, LeaderStatus ls) {
   switch (ls) {
-    case undecided:  os << "undecided"; break;
-    case not_leader: os << "not_leader"; break;
-    case leader:     os << "leader"; break;
+    case LeaderStatus::undecided:  os << "undecided"; break;
+    case LeaderStatus::follower:   os << "follower"; break;
+    case LeaderStatus::leader:     os << "leader"; break;
   }
   return os;
 }
@@ -16,9 +16,9 @@ inline std::istream& operator>>(std::istream& is, LeaderStatus& ls) {
   std::string str;
   is >> str;
 
-  if      (str == "undecided")  { ls = undecided; }
-  else if (str == "not_leader") { ls = not_leader; }
-  else if (str == "leader")     { ls = leader; }
+  if      (str == "undecided")  { ls = LeaderStatus::undecided; }
+  else if (str == "follower")   { ls = LeaderStatus::follower; }
+  else if (str == "leader")     { ls = LeaderStatus::leader; }
   else {
     throw std::runtime_error("unrecognized leader status");
   }

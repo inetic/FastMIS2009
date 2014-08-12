@@ -36,8 +36,6 @@ public:
 
   bool is_connected_to(Endpoint) const;
 
-  void send_to(const Message& msg, Endpoint destination);
-
   ~Node();
 
   template<class Handler> void start_fast_mis(const Handler& handler) {
@@ -51,26 +49,26 @@ private:
   Connection& create_connection(Endpoint);
 
   void on_receive_number();
-  void on_leader_status_changed();
+  void on_received_start();
+  void on_receive_status();
+  void on_receive_result(Connection& from);
 
   friend class Connection;
 
   bool smaller_than_others(float) const;
   bool has_number_from_all() const;
-  bool has_status1_from_all() const;
-  bool has_status2_from_all() const;
+  bool has_status_from_all() const;
   bool has_leader_neighbor() const;
 
   void start_fast_mis();
-  void on_received_start();
-  void on_status1_changed();
-  void on_status2_changed();
 
   void on_algorithm_completed();
   template<class Message, class... Args> void broadcast(Args...);
 
   template<class F> void each_contender(const F&);
   template<class F> void each_contender(const F&) const;
+
+  boost::asio::ip::udp::socket& socket() { return _socket; }
 
 private:
   friend std::ostream& operator<<(std::ostream&, const Node&);
@@ -82,7 +80,7 @@ private:
   bool                          _was_shut_down;
 
   // FastMIS related data.
-  LeaderStatus           _leader_status = undecided;
+  LeaderStatus           _leader_status = LeaderStatus::undecided;
   bool                   _fast_mis_started = false;
   std::set<ID>           _contenders;
   boost::optional<float> _my_random_number;

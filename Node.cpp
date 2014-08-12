@@ -21,6 +21,7 @@ Node::Node(boost::asio::io_service& ios)
 }
 
 void Node::shutdown() {
+  cout << id() << " shutdown\n";
   _was_shut_down = true;
   _socket.close();
   _connections.clear();
@@ -94,21 +95,6 @@ bool Node::is_connected_to(Endpoint remote_endpoint) const {
   return _connections.count(ID(remote_endpoint)) != 0;
 }
 
-void Node::send_to(const Message& msg, Endpoint destination) {
-  stringstream ss;
-  ss << msg.label() << " ";
-  msg.to_stream(ss);
-
-  //cout << id() << " -> " << ID(destination) << " " << msg.label() << " ";
-  //msg.to_stream(cout);
-  //cout << " " << endl;
-
-  auto data = make_shared<string>(ss.str());
-  _socket.async_send_to( asio::buffer(*data)
-                       , destination
-                       , [data](boost::system::error_code, size_t) {});
-}
-
 template<class Message, class... Args> void Node::broadcast(Args... args) {
   for (auto c_id : _contenders) {
     auto& c = *_connections[c_id];
@@ -118,7 +104,8 @@ template<class Message, class... Args> void Node::broadcast(Args... args) {
 
 template<class ContenderIDs, class Connections, class F>
 void for_each_contender(const ContenderIDs& ids, Connections& cs, const F& f) {
-  for (auto id : ids) {
+  ContenderIDs copy = ids;
+  for (auto id : copy) {
     auto ci = cs.find(id);
     assert(ci != cs.end());
     f(*ci->second);
@@ -148,18 +135,10 @@ bool Node::has_number_from_all() const {
   return retval;
 }
 
-bool Node::has_status1_from_all() const {
+bool Node::has_status_from_all() const {
   bool retval = true;
   each_contender([&](const Connection& c) {
-      if (!c.leader_status1) retval = false;
-      });
-  return retval;
-}
-
-bool Node::has_status2_from_all() const {
-  bool retval = true;
-  each_contender([&](const Connection& c) {
-      if (!c.leader_status2) retval = false;
+      if (!c.leader_status) retval = false;
       });
   return retval;
 }
@@ -174,6 +153,7 @@ bool Node::smaller_than_others(float my_number) const {
 }
 
 void Node::on_algorithm_completed() {
+  _fast_mis_started = false;
   cout << id() << " !!! " << _leader_status << " !!!\n";
   if (_on_algorithm_completed) {
     auto handler = _on_algorithm_completed;
@@ -184,10 +164,7 @@ void Node::on_algorithm_completed() {
 bool Node::has_leader_neighbor() const {
   for (const auto& pair : _connections) {
     const auto& c = *pair.second;
-    if (c.leader_status1 && c.leader_status1 == leader) {
-      return true;
-    }
-    if (c.leader_status2 && c.leader_status2 == leader) {
+    if (c.leader_status && *c.leader_status == LeaderStatus::leader) {
       return true;
     }
   }
@@ -200,9 +177,9 @@ void Node::start_fast_mis() {
     _contenders.insert(pair.first);
   }
 
-  _leader_status = undecided;
+  _leader_status = LeaderStatus::undecided;
   _fast_mis_started = true;
-  cout << id() << " broadcasting start\n";
+  cout << id() << " scheduling start broadcast\n";
   broadcast<StartMsg>();
   on_receive_number();
   cout << id() << " start_fast_mis\n";
@@ -211,16 +188,7 @@ void Node::start_fast_mis() {
 void Node::on_received_start() {
   if (_fast_mis_started) return;
   _fast_mis_started = true;
-
   start_fast_mis();
-  //_contenders.clear();
-  //for (const auto& pair : _connections) {
-  //  _contenders.insert(pair.first);
-  //}
-
-  //_leader_status = undecided;
-  //cout << id() << " on_received_start\n";
-  //on_receive_number();
 }
 
 void Node::on_receive_number() {
@@ -235,53 +203,51 @@ void Node::on_receive_number() {
     return;
   }
 
-  // TODO: What if I receive leader_status{1,2} before all the numbers?
-  // Is that possible?
-  each_contender([](Connection& c) {
-      c.leader_status1.reset();
-      c.leader_status2.reset();
-      });
+  cout << id() << " on_received_number: have all numbers\n";
 
   if (smaller_than_others(*_my_random_number)) {
-    _leader_status = leader;
+    _leader_status = LeaderStatus::leader;
   }
 
-  broadcast<Status1Msg>(_leader_status);
+  // We don't these anymore and they need to be unsed for the next stage.
+  _my_random_number.reset();
+  each_contender([](Connection& c) { c.random_number.reset(); });
 
-  on_status1_changed();
+  broadcast<StatusMsg>(_leader_status);
+
+  on_receive_status();
 }
 
-void Node::on_status1_changed() {
-  if (!has_status1_from_all()) return;
+void Node::on_receive_status() {
+  if (!has_status_from_all()) return;
+
+  cout << id() << " on_receive_status" << endl;
 
   if (has_leader_neighbor()) {
-    _leader_status = not_leader;
+    _leader_status = LeaderStatus::follower;
   }
 
-  broadcast<Status2Msg>(_leader_status);
-  on_status2_changed();
-}
+  each_contender([&](Connection& c) {
+      if (*c.leader_status != LeaderStatus::undecided) {
+        _contenders.erase(c.id());
+      }
+      else {
+        c.leader_status.reset();
+      }
+      });
 
-void Node::on_status2_changed() {
-  if (!has_status2_from_all()) return;
-
-  if (has_leader_neighbor()) {
-    _leader_status = not_leader;
-  }
-
-  auto contenders = _contenders;
-  for (auto c_id : contenders) {
-    if (_connections[c_id]->leader_status2 != undecided) {
-      _contenders.erase(c_id);
-    }
-  }
-
-  if (_leader_status != undecided && _contenders.size() == 0) {
-    on_algorithm_completed();
+  if (_leader_status == LeaderStatus::undecided) {
+    on_receive_number();
   }
   else {
-    _my_random_number.reset();
+    broadcast<ResultMsg>(_leader_status);
+    on_algorithm_completed();
   }
+}
+
+void Node::on_receive_result(Connection& from) {
+  _contenders.erase(from.id());
+  on_receive_number();
 }
 
 // So that I can use std::unique_ptr with forward declared template
