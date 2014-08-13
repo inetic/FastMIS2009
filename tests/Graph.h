@@ -20,6 +20,8 @@ public:
 
   Node& operator[](size_t i) { return _nodes[i]; }
 
+  size_t size() const { return _nodes.size(); }
+
 private:
   friend std::ostream& operator<<(std::ostream&, const Graph&);
 

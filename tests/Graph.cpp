@@ -32,9 +32,8 @@ void Graph::generate_connected(size_t node_count) {
   set<pair<size_t, size_t>> connections;
 
   // Generate minimal connected graph
-  for (size_t i = 0; i < _nodes.size(); ++i) {
-    size_t j = i;
-    while (j == i) { j = get_random_number(_nodes.size()); }
+  for (size_t i = 1; i < _nodes.size(); ++i) {
+    size_t j = get_random_number(i);
 
     if (i < j) { connections.insert(make_pair(i,j)); }
     else       { connections.insert(make_pair(j,i)); }
