@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(graph) {
 
     // Problematic seeds.
     //Random::instance().initialize_with_seed(?);
-    Random::instance().initialize_with_seed(942634526);
+    //Random::instance().initialize_with_seed(942634526); // 10
 
     log("New seed: ", Random::instance().get_seed());
 
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(graph) {
 
     Graph graph(ios);
 
-    graph.generate_connected(10);
+    graph.generate_connected(3);
 
     log("----------------------------------");
     log(graph);
@@ -230,6 +230,9 @@ BOOST_AUTO_TEST_CASE(graph) {
         log("=============== done");
         timer.async_wait([&](Error) {
           log("Shutting down");
+          BOOST_REQUIRE(graph.every_node_stopped());
+          BOOST_REQUIRE(graph.every_node_decided());
+          BOOST_REQUIRE(graph.every_neighbor_decided());
           graph.shutdown();
           });
         });

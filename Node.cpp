@@ -209,6 +209,7 @@ void Node::on_received_start() {
 }
 
 void Node::on_receive_number() {
+  assert(_fast_mis_started);
   assert(_leader_status == LeaderStatus::undecided);
 
   if (!_my_random_number) {
@@ -234,6 +235,7 @@ void Node::on_receive_number() {
 }
 
 void Node::on_receive_status() {
+  assert(_fast_mis_started);
   if (!has_status_from_all_contenders()) return;
 
   if (has_leader_neighbor()) {
@@ -247,6 +249,7 @@ void Node::on_receive_status() {
 }
 
 void Node::on_receive_result() {
+  assert(_fast_mis_started);
   if (!has_result_from_all_contenders()) return;
 
   if (_leader_status != LeaderStatus::undecided) {
@@ -271,6 +274,15 @@ void Node::on_receive_result() {
 void Node::reset_all_numbers() {
   _my_random_number.reset();
   each_connection([](Connection& c) { c.random_number.reset(); });
+}
+
+bool Node::every_neighbor_decided() const {
+  bool retval = true;
+  each_connection([&](Connection& c) {
+      if (!c.leader_status || c.leader_status == LeaderStatus::undecided) {
+        retval = false;
+      }});
+  return retval;
 }
 
 // So that I can use std::unique_ptr with forward declared template

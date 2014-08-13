@@ -4,6 +4,7 @@
 #include "Random.h"
 #include "Graph.h"
 #include "../Node.h"
+#include "../Connection.h"
 
 using namespace boost;
 using namespace std;
@@ -66,6 +67,33 @@ void Graph::shutdown() {
   for (auto& n : _nodes) {
     n.shutdown();
   }
+}
+
+bool Graph::every_node_stopped() const {
+  for (const auto& node : _nodes) {
+    if (node.is_running_mis()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool Graph::every_node_decided() const {
+  for (const auto& node : _nodes) {
+    if (node.leader_status() == LeaderStatus::undecided) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool Graph::every_neighbor_decided() const {
+  for (const auto& node : _nodes) {
+    if (!node.every_neighbor_decided()) {
+      return false;
+    }
+  }
+  return true;
 }
 
 std::ostream& operator<<(std::ostream& os, const Graph& g) {

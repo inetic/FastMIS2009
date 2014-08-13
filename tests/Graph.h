@@ -14,6 +14,10 @@ public:
   void shutdown();
   bool is_MIS() const;
 
+  bool every_node_stopped() const;
+  bool every_node_decided() const;
+  bool every_neighbor_decided() const;
+
   Node& operator[](size_t i) { return _nodes[i]; }
 
 private:

@@ -43,6 +43,12 @@ public:
     start_fast_mis();
   }
 
+  bool is_running_mis() const { return _fast_mis_started; }
+
+  LeaderStatus leader_status() const { return _leader_status; }
+
+  bool every_neighbor_decided() const;
+
 private:
   void receive_data();
   void use_data(Endpoint sender, std::string&&);
