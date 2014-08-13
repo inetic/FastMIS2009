@@ -200,13 +200,9 @@ BOOST_AUTO_TEST_CASE(two_nodes_fast_mis) {
 }
 
 //------------------------------------------------------------------------------
-BOOST_AUTO_TEST_CASE(graph) {
-  while (true) {
+BOOST_AUTO_TEST_CASE(many_3_node_graphs) {
+  while (1000) {
     Random::instance().initialize_with_random_seed();
-
-    // Problematic seeds.
-    //Random::instance().initialize_with_seed(?);
-    //Random::instance().initialize_with_seed(942634526); // 10
 
     log("New seed: ", Random::instance().get_seed());
 
@@ -225,7 +221,7 @@ BOOST_AUTO_TEST_CASE(graph) {
     graph[0].start_fast_mis([&]() {
         // Give time to other nodes to decide.
         timer.expires_from_now(
-          milliseconds(PING_TIMEOUT_MS*MAX_MISSED_PING_COUNT));
+          milliseconds(5*graph.size()*PING_TIMEOUT_MS*MAX_MISSED_PING_COUNT));
 
         log("=============== done");
         timer.async_wait([&](Error) {

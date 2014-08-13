@@ -73,23 +73,44 @@ struct NumberMsg : Message {
 };
 
 //------------------------------------------------------------------------------
-struct StatusMsg : Message {
-  std::string label() const override { return "status"; }
+struct Update1Msg : Message {
+  std::string label() const override { return "update1"; }
 
-  LeaderStatus leader_status;
+  LeaderStatus status;
 
-  StatusMsg(uint32_t sequence_number, uint32_t ack_sequence_number
-       , LeaderStatus leader_status)
+  Update1Msg(uint32_t sequence_number, uint32_t ack_sequence_number
+       , LeaderStatus status)
     : Message(sequence_number, ack_sequence_number)
-    , leader_status(leader_status)
+    , status(status)
   {}
 
-  StatusMsg(std::istream& is) : Message(is) {
-    is >> leader_status;
+  Update1Msg(std::istream& is) : Message(is) {
+    is >> status;
   }
 
   void to_stream(std::ostream& os) const override {
-    os << leader_status;
+    os << status;
+  }
+};
+
+//------------------------------------------------------------------------------
+struct Update2Msg : Message {
+  std::string label() const override { return "update2"; }
+
+  LeaderStatus status;
+
+  Update2Msg(uint32_t sequence_number, uint32_t ack_sequence_number
+       , LeaderStatus status)
+    : Message(sequence_number, ack_sequence_number)
+    , status(status)
+  {}
+
+  Update2Msg(std::istream& is) : Message(is) {
+    is >> status;
+  }
+
+  void to_stream(std::ostream& os) const override {
+    os << status;
   }
 };
 
@@ -97,20 +118,20 @@ struct StatusMsg : Message {
 struct ResultMsg : Message {
   std::string label() const override { return "result"; }
 
-  LeaderStatus leader_status;
+  LeaderStatus status;
 
   ResultMsg(uint32_t sequence_number, uint32_t ack_sequence_number
-       , LeaderStatus leader_status)
+       , LeaderStatus status)
     : Message(sequence_number, ack_sequence_number)
-    , leader_status(leader_status)
+    , status(status)
   {}
 
   ResultMsg(std::istream& is) : Message(is) {
-    is >> leader_status;
+    is >> status;
   }
 
   void to_stream(std::ostream& os) const override {
-    os << leader_status;
+    os << status;
   }
 };
 
@@ -118,14 +139,16 @@ struct ResultMsg : Message {
 template< typename PingHandler
         , typename StartHandler
         , typename NumberHandler
-        , typename StatusHandler
+        , typename Update1Handler
+        , typename Update2Handler
         , typename ResultHandler
         >
 void dispatch_message( std::istream& is
                      , const PingHandler&    ping_handler
                      , const StartHandler&   start_handler
                      , const NumberHandler&  random_number_handler
-                     , const StatusHandler&  status_handler
+                     , const Update1Handler& update1_handler
+                     , const Update2Handler& update2_handler
                      , const ResultHandler&  result_handler) {
   using namespace std;
 
@@ -141,8 +164,11 @@ void dispatch_message( std::istream& is
   else if (label == "number") {
     random_number_handler(NumberMsg(is));
   }
-  else if (label == "status") {
-    status_handler(StatusMsg(is));
+  else if (label == "update1") {
+    update1_handler(Update1Msg(is));
+  }
+  else if (label == "update2") {
+    update2_handler(Update2Msg(is));
   }
   else if (label == "result") {
     result_handler(ResultMsg(is));

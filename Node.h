@@ -56,15 +56,16 @@ private:
 
   void on_receive_number();
   void on_received_start();
-  void on_receive_status();
+  void on_receive_update1();
+  void on_receive_update2();
   void on_receive_result();
 
   friend class Connection;
 
   bool smaller_than_others(float) const;
   bool has_number_from_all() const;
-  bool has_status_from_all_contenders() const;
-  bool has_result_from_all_contenders() const;
+  bool has_update1_from_all_contenders() const;
+  bool has_update2_from_all_contenders() const;
   bool has_result_from_all_connections() const;
   bool has_leader_neighbor() const;
 

@@ -135,29 +135,30 @@ bool Node::has_number_from_all() const {
   return retval;
 }
 
-bool Node::has_status_from_all_contenders() const {
+bool Node::has_update1_from_all_contenders() const {
   bool retval = true;
   each_connection([&](const Connection& c) {
       if (!c.is_contender) return;
-      if (!c.leader_status) retval = false;
+      if (!c.update1) retval = false;
       });
   return retval;
 }
 
-bool Node::has_result_from_all_contenders() const {
+bool Node::has_update2_from_all_contenders() const {
   bool retval = true;
   each_connection([&](const Connection& c) {
       if (!c.is_contender) return;
-      if (!c.leader_result) retval = false;
+      if (!c.update2) retval = false;
       });
   return retval;
 }
 
-bool Node::has_result_from_all_connections() const {
+bool Node::every_neighbor_decided() const {
   bool retval = true;
-  each_connection([&](const Connection& c) {
-      if (!c.leader_result) retval = false;
-      });
+  each_connection([&](Connection& c) {
+      if (!c.result || *c.result == LeaderStatus::undecided) {
+        retval = false;
+      }});
   return retval;
 }
 
@@ -184,7 +185,10 @@ void Node::on_algorithm_completed() {
 bool Node::has_leader_neighbor() const {
   for (const auto& pair : _connections) {
     const auto& c = *pair.second;
-    if (c.leader_status && *c.leader_status == LeaderStatus::leader) {
+    if (c.update1 && *c.update1 == LeaderStatus::leader) {
+      return true;
+    }
+    if (c.update2 && *c.update2 == LeaderStatus::leader) {
       return true;
     }
   }
@@ -193,7 +197,14 @@ bool Node::has_leader_neighbor() const {
 
 void Node::start_fast_mis() {
   for (const auto& pair : _connections) {
-    pair.second->is_contender = true;
+    auto& c = *pair.second;
+    // TODO: This should be in Connection
+    c.knows_my_result = false;
+    c.random_number = false;
+    c.update1.reset();
+    c.update2.reset();
+    c.result.reset();
+    c.is_contender = true;
   }
 
   reset_all_numbers();
@@ -229,60 +240,65 @@ void Node::on_receive_number() {
   // We don't these anymore and they need to be unsed for the next stage.
   reset_all_numbers();
 
-  broadcast_contenders<StatusMsg>(_leader_status);
+  broadcast_contenders<Update1Msg>(_leader_status);
 
-  on_receive_status();
+  on_receive_update1();
 }
 
-void Node::on_receive_status() {
+void Node::on_receive_update1() {
   assert(_fast_mis_started);
-  if (!has_status_from_all_contenders()) return;
+
+  if (!has_update1_from_all_contenders()) return;
 
   if (has_leader_neighbor()) {
     log(id(), " has leader neigbor => follower");
     _leader_status = LeaderStatus::follower;
   }
 
-  broadcast_contenders<ResultMsg>(_leader_status);
+  each_connection([](Connection& c) { c.update1.reset(); });
 
-  on_receive_result();
+  broadcast_contenders<Update2Msg>(_leader_status);
+
+  on_receive_update2();
+}
+
+void Node::on_receive_update2() {
+  assert(_fast_mis_started);
+
+  if (!has_update2_from_all_contenders()) return;
+
+  each_connection([&](Connection& c) {
+      if (!c.is_contender) return;
+      if (*c.update2 != LeaderStatus::undecided) {
+        c.is_contender = false;
+      }
+      });
+
+  each_connection([](Connection& c) { c.update2.reset(); });
+
+  if (_leader_status != LeaderStatus::undecided) {
+    each_connection([&](Connection& c) {
+        if (c.knows_my_result) return;
+        c.knows_my_result = true;
+        c.schedule_send<ResultMsg>(_leader_status);
+        });
+  }
+  else {
+    on_receive_number();
+  }
 }
 
 void Node::on_receive_result() {
   assert(_fast_mis_started);
-  if (!has_result_from_all_contenders()) return;
-
-  if (_leader_status != LeaderStatus::undecided) {
-    each_connection([&](Connection& c) {
-        c.is_contender = false;
-        });
-
-    if (has_result_from_all_connections()) {
-      on_algorithm_completed();
-    }
-  }
-  else {
-    each_connection([&](Connection& c) {
-        if (*c.leader_result != LeaderStatus::undecided) {
-          c.is_contender = false;
-        }});
-
-    on_receive_number();
-  }
+  if (!every_neighbor_decided()) return;
+  log(id(), " aaaaaaaaaaaaaaaaaaaaaaaaaaaa 1");
+  on_algorithm_completed();
+  log(id(), " aaaaaaaaaaaaaaaaaaaaaaaaaaaa 2");
 }
 
 void Node::reset_all_numbers() {
   _my_random_number.reset();
   each_connection([](Connection& c) { c.random_number.reset(); });
-}
-
-bool Node::every_neighbor_decided() const {
-  bool retval = true;
-  each_connection([&](Connection& c) {
-      if (!c.leader_status || c.leader_status == LeaderStatus::undecided) {
-        retval = false;
-      }});
-  return retval;
 }
 
 // So that I can use std::unique_ptr with forward declared template

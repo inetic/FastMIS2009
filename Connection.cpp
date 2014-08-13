@@ -19,6 +19,7 @@ Connection::Connection(Node& node, Endpoint remote_endpoint)
   , _is_sending(false)
   , _rx_sequence_id(0)
   , _tx_sequence_id(0)
+  , knows_my_result(false)
   , is_contender(false)
 {
 }
@@ -75,7 +76,8 @@ void Connection::receive_data(const std::string& data) {
       , [&](const PingMsg& msg)    { receive(msg); }
       , [&](const StartMsg& msg)   { receive(msg); }
       , [&](const NumberMsg& msg)  { receive(msg); }
-      , [&](const StatusMsg& msg)  { receive(msg); }
+      , [&](const Update1Msg& msg) { receive(msg); }
+      , [&](const Update2Msg& msg) { receive(msg); }
       , [&](const ResultMsg& msg)  { receive(msg); });
 }
 
@@ -116,14 +118,20 @@ void Connection::use_message(const NumberMsg& msg) {
 }
 
 //------------------------------------------------------------------------------
-void Connection::use_message(const StatusMsg& msg) {
-  leader_status = msg.leader_status;
-  _node.on_receive_status();
+void Connection::use_message(const Update1Msg& msg) {
+  update1 = msg.status;
+  _node.on_receive_update1();
+}
+
+//------------------------------------------------------------------------------
+void Connection::use_message(const Update2Msg& msg) {
+  update2 = msg.status;
+  _node.on_receive_update2();
 }
 
 //------------------------------------------------------------------------------
 void Connection::use_message(const ResultMsg& msg) {
-  leader_result = msg.leader_status;
+  result = msg.status;
   _node.on_receive_result();
 }
 
