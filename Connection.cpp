@@ -16,6 +16,7 @@ Connection::Connection(Node& node, Endpoint remote_endpoint)
   , _remote_endpoint(remote_endpoint)
   , _periodic_timer(node.get_io_service(), [=]() { on_tick(); })
   , _missed_ping_count(0)
+  , _is_sending(false)
   , _rx_sequence_id(0)
   , _tx_sequence_id(0)
 {
@@ -23,6 +24,9 @@ Connection::Connection(Node& node, Endpoint remote_endpoint)
 
 //------------------------------------------------------------------------------
 void Connection::send(const Message& msg) {
+  if (_is_sending) return;
+  _is_sending = true;
+
   stringstream ss;
   ss << msg.label() << " ";
   msg.to_stream(ss);
@@ -33,10 +37,21 @@ void Connection::send(const Message& msg) {
   //  cout << " " << endl;
   //}
 
+  auto destroyed = _destroy_guard.indicator();
+
   auto data = make_shared<string>(ss.str());
-  _node.socket().async_send_to( asio::buffer(*data)
-                              , _remote_endpoint
-                              , [data](boost::system::error_code, size_t) {});
+  _node.socket().async_send_to
+    ( asio::buffer(*data)
+    , _remote_endpoint
+    , [this, data, destroyed](boost::system::error_code, size_t) {
+      if (destroyed) return;
+      _is_sending = false;
+    });
+}
+
+void Connection::send_front_message() {
+  _tx_messages.front().ack_sequence_number = _rx_sequence_id;
+  send(_tx_messages.front());
 }
 
 //------------------------------------------------------------------------------
@@ -50,8 +65,7 @@ void Connection::on_tick() {
   ++_missed_ping_count;
 
   if (!_tx_messages.empty()) {
-    _tx_messages.front().ack_sequence_number = _rx_sequence_id;
-    send(_tx_messages.front());
+    send_front_message();
   }
   else {
     send(PingMsg(_tx_sequence_id, _rx_sequence_id));

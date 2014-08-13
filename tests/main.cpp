@@ -201,11 +201,12 @@ BOOST_AUTO_TEST_CASE(two_nodes_fast_mis) {
 
 //------------------------------------------------------------------------------
 BOOST_AUTO_TEST_CASE(graph) {
-  while (true) {
+  //while (true) {
     Random::instance().initialize_with_random_seed();
 
-    // Problematic seed.
+    // Problematic seeds.
     //Random::instance().initialize_with_seed(5738315);
+    Random::instance().initialize_with_seed(1616892264);
 
     log("New seed: ", Random::instance().get_seed());
 
@@ -234,7 +235,7 @@ BOOST_AUTO_TEST_CASE(graph) {
         });
 
     ios.run();
-  }
+  //}
 }
 
 //------------------------------------------------------------------------------

@@ -5,6 +5,7 @@
 #include <boost/ptr_container/ptr_deque.hpp>
 #include <boost/optional.hpp>
 #include "Endpoint.h"
+#include "DestroyGuard.h"
 #include "ID.h"
 #include "PeriodicTimer.h"
 #include "protocol.h"
@@ -22,8 +23,10 @@ public:
   ID id() const { return ID(_remote_endpoint); }
 
   template<class Msg, class... Args> void schedule_send(Args... args) {
+    bool was_empty = _tx_messages.empty();
     Msg* msg = new Msg(++_tx_sequence_id, _rx_sequence_id, args...);
     _tx_messages.push_back(msg);
+    if (was_empty) send_front_message();
   }
 
 private:
@@ -41,16 +44,20 @@ private:
   void ack_message(uint32_t ack_sequence_number);
 
   void send(const Message& msg);
+  void send_front_message();
 
 private:
   Node&           _node;
   const Endpoint  _remote_endpoint;
   PeriodicTimer   _periodic_timer;
   unsigned int    _missed_ping_count;
+  bool            _is_sending;
 
   boost::ptr_deque<Message> _tx_messages;
   uint32_t                  _rx_sequence_id;
   uint32_t                  _tx_sequence_id;
+
+  DestroyGuard              _destroy_guard;
 
 public:
   // FastMIS related data.
