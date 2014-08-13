@@ -17,6 +17,7 @@ Node::Node(boost::asio::io_service& ios)
   , _socket(ios, udp::endpoint(udp::v4(), 0)) // Assign random port
   , _id(_socket.local_endpoint())
   , _was_shut_down(false)
+  , _state(idle)
 {
   receive_data();
 }
@@ -207,6 +208,7 @@ void Node::start_fast_mis() {
     c.is_contender = true;
   }
 
+  _state = numbers;
   reset_all_numbers();
   _leader_status = LeaderStatus::undecided;
   _fast_mis_started = true;
@@ -220,6 +222,8 @@ void Node::on_received_start() {
 }
 
 void Node::on_receive_number() {
+  if (_state != numbers) return;
+
   assert(_fast_mis_started);
   assert(_leader_status == LeaderStatus::undecided);
 
@@ -242,11 +246,12 @@ void Node::on_receive_number() {
 
   broadcast_contenders<Update1Msg>(_leader_status);
 
+  _state = updates1;
   on_receive_update1();
 }
 
 void Node::on_receive_update1() {
-  assert(_fast_mis_started);
+  if (_state != updates1) return;
 
   if (!has_update1_from_all_contenders()) return;
 
@@ -259,13 +264,19 @@ void Node::on_receive_update1() {
 
   broadcast_contenders<Update2Msg>(_leader_status);
 
+  _state = updates2;
   on_receive_update2();
 }
 
 void Node::on_receive_update2() {
-  assert(_fast_mis_started);
+  if (_state != updates2) return;
 
   if (!has_update2_from_all_contenders()) return;
+
+  log(id(), " Got all U2");
+  each_connection([&](Connection& c) {
+      log(id(), "     from: ", c.id(), " ", (c.is_contender?"contender":"not contender"));
+      });
 
   each_connection([&](Connection& c) {
       if (!c.is_contender) return;
@@ -277,6 +288,7 @@ void Node::on_receive_update2() {
   each_connection([](Connection& c) { c.update2.reset(); });
 
   if (_leader_status != LeaderStatus::undecided) {
+    _state = idle;
     each_connection([&](Connection& c) {
         if (c.knows_my_result) return;
         c.knows_my_result = true;
@@ -284,6 +296,7 @@ void Node::on_receive_update2() {
         });
   }
   else {
+    _state = numbers;
     on_receive_number();
   }
 }

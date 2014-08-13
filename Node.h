@@ -14,6 +14,8 @@ class Message;
 
 class Node {
 private:
+  enum State { idle, numbers, updates1, updates2 };
+
   using ConnectionPtr = std::shared_ptr<Connection>;
   // TODO: Do I need to store connections as pointers?
   using Connections   = std::map<ID, ConnectionPtr>;
@@ -98,6 +100,7 @@ private:
   bool                          _was_shut_down;
 
   // FastMIS related data.
+  State                  _state;
   LeaderStatus           _leader_status = LeaderStatus::undecided;
   bool                   _fast_mis_started = false;
   //std::set<ID>           _contenders;
