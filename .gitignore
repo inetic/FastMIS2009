@@ -5,3 +5,4 @@ bin/
 build/
 log
 .debug_time
+output.txt

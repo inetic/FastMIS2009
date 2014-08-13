@@ -1,17 +1,20 @@
 #include <set>
 #include <iostream>
 #include <boost/random/random_device.hpp>
+#include "Random.h"
 #include "Graph.h"
 #include "../Node.h"
 
 using namespace boost;
 using namespace std;
 
-static unsigned int get_random_number() {
-  typedef boost::random_device Dev;
-  Dev generate;
-  Dev::result_type random_number = generate();
-  return random_number - Dev::min();
+static unsigned int get_random_number(int max) {
+  if (max == 0) { return 0; }
+  return Random::instance().generate_int(0, max - 1);
+  //typedef boost::random_device Dev;
+  //Dev generate;
+  //Dev::result_type random_number = generate();
+  //return random_number - Dev::min();
 }
 
 Graph::Graph(asio::io_service& ios)
@@ -34,7 +37,7 @@ void Graph::generate_connected(size_t node_count) {
   // Generate minimal connected graph
   for (size_t i = 0; i < _nodes.size(); ++i) {
     size_t j = i;
-    while (j == i) { j = get_random_number() % _nodes.size(); }
+    while (j == i) { j = get_random_number(_nodes.size()); }
 
     if (i < j) { connections.insert(make_pair(i,j)); }
     else       { connections.insert(make_pair(j,i)); }
@@ -42,9 +45,9 @@ void Graph::generate_connected(size_t node_count) {
 
   // Add few more connections for good measure
   for (size_t i = 0; i < _nodes.size(); ++i) {
-    while (get_random_number() % _nodes.size() < _nodes.size() / 2) {
+    while (get_random_number(_nodes.size()) < _nodes.size() / 2) {
       size_t j = i;
-      while (j == i) { j = get_random_number() % _nodes.size(); }
+      while (j == i) { j = get_random_number(_nodes.size()); }
 
       if (i < j) { connections.insert(make_pair(i,j)); }
       else       { connections.insert(make_pair(j,i)); }

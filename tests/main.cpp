@@ -4,8 +4,10 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio.hpp>
+#include "Random.h"
 #include "Graph.h"
 #include "constants.h"
+#include "log.h"
 
 namespace asio = boost::asio;
 namespace pstime = boost::posix_time;
@@ -200,15 +202,22 @@ BOOST_AUTO_TEST_CASE(two_nodes_fast_mis) {
 //------------------------------------------------------------------------------
 BOOST_AUTO_TEST_CASE(graph) {
   while (true) {
+    Random::instance().initialize_with_random_seed();
+
+    // Problematic seed.
+    //Random::instance().initialize_with_seed(5738315);
+
+    log("New seed: ", Random::instance().get_seed());
+
     asio::io_service ios;
 
     Graph graph(ios);
 
     graph.generate_connected(4);
 
-    cout << "----------------------------------" << endl;
-    cout << graph << endl;
-    cout << "----------------------------------" << endl;
+    log("----------------------------------");
+    log(graph);
+    log("----------------------------------");
 
     asio::deadline_timer timer(ios);
 
@@ -217,9 +226,9 @@ BOOST_AUTO_TEST_CASE(graph) {
         timer.expires_from_now(
           milliseconds(PING_TIMEOUT_MS*MAX_MISSED_PING_COUNT));
 
-        cout << "=============== done\n";
+        log("=============== done");
         timer.async_wait([&](Error) {
-          cout << "Shutting down\n";
+          log("Shutting down");
           graph.shutdown();
           });
         });

@@ -1,8 +1,8 @@
 #include <boost/uuid/uuid_io.hpp>
-#include <boost/random/random_device.hpp>
 
 #include "Node.h"
 #include "Connection.h"
+#include "Random.h"
 #include "constants.h"
 #include "protocol.h"
 #include "log.h"
@@ -121,13 +121,6 @@ template<class F> void Node::each_contender(const F& f) {
   for_each_contender(_contenders, _connections, f);
 }
 
-static float random_number() {
-  typedef boost::random_device Dev;
-  Dev generate;
-  Dev::result_type random_number = generate();
-  return (float) (random_number - Dev::min()) / Dev::max();
-}
-
 bool Node::has_number_from_all() const {
   bool retval = true;
   each_contender([&](const Connection& c) {
@@ -194,7 +187,7 @@ void Node::on_received_start() {
 
 void Node::on_receive_number() {
   if (!_my_random_number) {
-    _my_random_number = random_number();
+    _my_random_number = Random::instance().generate_float();
     log(id(), " broadcasting new number ", *_my_random_number);
     broadcast<NumberMsg>(*_my_random_number);
   }
