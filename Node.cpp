@@ -5,6 +5,7 @@
 #include "Connection.h"
 #include "constants.h"
 #include "protocol.h"
+#include "log.h"
 
 namespace asio = boost::asio;
 using udp = asio::ip::udp;
@@ -21,7 +22,7 @@ Node::Node(boost::asio::io_service& ios)
 }
 
 void Node::shutdown() {
-  cout << id() << " shutdown\n";
+  log(id(), " shutdown");
   _was_shut_down = true;
   _socket.close();
   _connections.clear();
@@ -65,7 +66,7 @@ void Node::use_data(Endpoint sender, string&& data) {
     c.receive_data(data);
   }
   catch (const runtime_error& e) {
-    cout << "Problem reading message: " << e.what() << endl;
+    log(id(), " Problem reading message: ", e.what());
     disconnect(sender);
   }
 }
@@ -154,7 +155,7 @@ bool Node::smaller_than_others(float my_number) const {
 
 void Node::on_algorithm_completed() {
   _fast_mis_started = false;
-  cout << id() << " !!! " << _leader_status << " !!!\n";
+  log(id(), " !!! ", _leader_status, " !!!");
   if (_on_algorithm_completed) {
     auto handler = _on_algorithm_completed;
     handler();
@@ -179,10 +180,10 @@ void Node::start_fast_mis() {
 
   _leader_status = LeaderStatus::undecided;
   _fast_mis_started = true;
-  cout << id() << " scheduling start broadcast\n";
+  log(id(), " scheduling start broadcast");
   broadcast<StartMsg>();
   on_receive_number();
-  cout << id() << " start_fast_mis\n";
+  log(id(), " start_fast_mis");
 }
 
 void Node::on_received_start() {
@@ -194,16 +195,16 @@ void Node::on_received_start() {
 void Node::on_receive_number() {
   if (!_my_random_number) {
     _my_random_number = random_number();
-    cout << id() << " broadcasting new number " << *_my_random_number << "\n";
+    log(id(), " broadcasting new number ", *_my_random_number);
     broadcast<NumberMsg>(*_my_random_number);
   }
 
   if (!has_number_from_all()) {
-    cout << id() << " on_received_number: don't have all numbers\n";
+    log(id(), " on_received_number: don't have all numbers");
     return;
   }
 
-  cout << id() << " on_received_number: have all numbers\n";
+  log(id(), " on_received_number: have all numbers");
 
   if (smaller_than_others(*_my_random_number)) {
     _leader_status = LeaderStatus::leader;
@@ -221,7 +222,7 @@ void Node::on_receive_number() {
 void Node::on_receive_status() {
   if (!has_status_from_all()) return;
 
-  cout << id() << " on_receive_status" << endl;
+  log(id(), " on_receive_status");
 
   if (has_leader_neighbor()) {
     _leader_status = LeaderStatus::follower;

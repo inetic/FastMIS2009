@@ -2,6 +2,7 @@
 #include "Connection.h"
 #include "Node.h"
 #include "constants.h"
+#include "log.h"
 
 namespace asio = boost::asio;
 using udp = asio::ip::udp;
@@ -91,27 +92,27 @@ void Connection::use_message(const PingMsg&) {
 
 //------------------------------------------------------------------------------
 void Connection::use_message(const StartMsg& msg) {
-  cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
+  log(_node.id(), " <- ", id(), " ", msg.label(), " ",msg);
   _node.on_received_start();
 }
 
 //------------------------------------------------------------------------------
 void Connection::use_message(const NumberMsg& msg) {
-  cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
+  log(_node.id(), " <- ", id(), " ", msg.label(), " ", msg);
   random_number.reset(msg.random_number);
   _node.on_receive_number();
 }
 
 //------------------------------------------------------------------------------
 void Connection::use_message(const StatusMsg& msg) {
-  cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
+  log(_node.id(), " <- ", id(), " ", msg.label(), " ", msg);
   leader_status = msg.leader_status;
   _node.on_receive_status();
 }
 
 //------------------------------------------------------------------------------
 void Connection::use_message(const ResultMsg& msg) {
-  cout << _node.id() << " <- " << id() << " " << msg.label() << " " << msg << endl;
+  log(_node.id(), " <- ", id(), " ", msg.label(), " ", msg);
   leader_status = msg.leader_status;
   _node.on_receive_result(*this);
 }
