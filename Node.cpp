@@ -97,49 +97,74 @@ bool Node::is_connected_to(Endpoint remote_endpoint) const {
 }
 
 template<class Message, class... Args> void Node::broadcast(Args... args) {
-  for (auto c_id : _contenders) {
-    auto& c = *_connections[c_id];
+  for (auto pair : _connections) {
+    auto& c = *pair.second;
     c.schedule_send<Message>(args...);
   }
 }
 
-template<class ContenderIDs, class Connections, class F>
-void for_each_contender(const ContenderIDs& ids, Connections& cs, const F& f) {
-  ContenderIDs copy = ids;
-  for (auto id : copy) {
-    auto ci = cs.find(id);
-    assert(ci != cs.end());
-    f(*ci->second);
+template<class Message, class... Args> void Node::broadcast_contenders(Args... args) {
+  for (auto pair : _connections) {
+    auto& c = *pair.second;
+    if (!c.is_contender) continue;
+    c.schedule_send<Message>(args...);
   }
 }
 
-template<class F> void Node::each_contender(const F& f) const {
-  for_each_contender(_contenders, _connections, f);
+template<class Connections, class F>
+void for_each_connection(Connections& cs, const F& f) {
+  for (auto pair : cs) {
+    f(*pair.second);
+  }
 }
 
-template<class F> void Node::each_contender(const F& f) {
-  for_each_contender(_contenders, _connections, f);
+template<class F> void Node::each_connection(const F& f) const {
+  for_each_connection(_connections, f);
+}
+
+template<class F> void Node::each_connection(const F& f) {
+  for_each_connection(_connections, f);
 }
 
 bool Node::has_number_from_all() const {
   bool retval = true;
-  each_contender([&](const Connection& c) {
+  each_connection([&](const Connection& c) {
+      if (!c.is_contender) return;
       if (!c.random_number) retval = false;
       });
   return retval;
 }
 
-bool Node::has_status_from_all() const {
+bool Node::has_status_from_all_contenders() const {
   bool retval = true;
-  each_contender([&](const Connection& c) {
+  each_connection([&](const Connection& c) {
+      if (!c.is_contender) return;
       if (!c.leader_status) retval = false;
+      });
+  return retval;
+}
+
+bool Node::has_result_from_all_contenders() const {
+  bool retval = true;
+  each_connection([&](const Connection& c) {
+      if (!c.is_contender) return;
+      if (!c.leader_result) retval = false;
+      });
+  return retval;
+}
+
+bool Node::has_result_from_all_connections() const {
+  bool retval = true;
+  each_connection([&](const Connection& c) {
+      if (!c.leader_result) retval = false;
       });
   return retval;
 }
 
 bool Node::smaller_than_others(float my_number) const {
   bool retval = true;
-  each_contender([&](const Connection& c) {
+  each_connection([&](const Connection& c) {
+      if (!c.is_contender) return;
       if (c.random_number && my_number >= c.random_number) {
         retval = false;
       }});
@@ -147,6 +172,7 @@ bool Node::smaller_than_others(float my_number) const {
 }
 
 void Node::on_algorithm_completed() {
+  assert(_fast_mis_started);
   _fast_mis_started = false;
   log(id(), " !!! ", _leader_status, " !!!");
   if (_on_algorithm_completed) {
@@ -166,82 +192,85 @@ bool Node::has_leader_neighbor() const {
 }
 
 void Node::start_fast_mis() {
-  _contenders.clear();
   for (const auto& pair : _connections) {
-    _contenders.insert(pair.first);
+    pair.second->is_contender = true;
   }
 
+  reset_all_numbers();
   _leader_status = LeaderStatus::undecided;
   _fast_mis_started = true;
-  log(id(), " scheduling start broadcast");
   broadcast<StartMsg>();
   on_receive_number();
-  log(id(), " start_fast_mis");
 }
 
 void Node::on_received_start() {
   if (_fast_mis_started) return;
-  _fast_mis_started = true;
   start_fast_mis();
 }
 
 void Node::on_receive_number() {
+  assert(_leader_status == LeaderStatus::undecided);
+
   if (!_my_random_number) {
     _my_random_number = Random::instance().generate_float();
-    log(id(), " broadcasting new number ", *_my_random_number);
-    broadcast<NumberMsg>(*_my_random_number);
+    broadcast_contenders<NumberMsg>(*_my_random_number);
   }
 
   if (!has_number_from_all()) {
-    log(id(), " on_received_number: don't have all numbers");
     return;
   }
 
-  log(id(), " on_received_number: have all numbers");
-
   if (smaller_than_others(*_my_random_number)) {
+    log(id(), " elected leader");
     _leader_status = LeaderStatus::leader;
   }
 
   // We don't these anymore and they need to be unsed for the next stage.
-  _my_random_number.reset();
-  each_contender([](Connection& c) { c.random_number.reset(); });
+  reset_all_numbers();
 
-  broadcast<StatusMsg>(_leader_status);
+  broadcast_contenders<StatusMsg>(_leader_status);
 
   on_receive_status();
 }
 
 void Node::on_receive_status() {
-  if (!has_status_from_all()) return;
-
-  log(id(), " on_receive_status");
+  if (!has_status_from_all_contenders()) return;
 
   if (has_leader_neighbor()) {
+    log(id(), " has leader neigbor => follower");
     _leader_status = LeaderStatus::follower;
   }
 
-  each_contender([&](Connection& c) {
-      if (*c.leader_status != LeaderStatus::undecided) {
-        _contenders.erase(c.id());
-      }
-      else {
-        c.leader_status.reset();
-      }
-      });
+  broadcast_contenders<ResultMsg>(_leader_status);
 
-  if (_leader_status == LeaderStatus::undecided) {
-    on_receive_number();
+  on_receive_result();
+}
+
+void Node::on_receive_result() {
+  if (!has_result_from_all_contenders()) return;
+
+  if (_leader_status != LeaderStatus::undecided) {
+    each_connection([&](Connection& c) {
+        c.is_contender = false;
+        });
+
+    if (has_result_from_all_connections()) {
+      on_algorithm_completed();
+    }
   }
   else {
-    broadcast<ResultMsg>(_leader_status);
-    on_algorithm_completed();
+    each_connection([&](Connection& c) {
+        if (*c.leader_result != LeaderStatus::undecided) {
+          c.is_contender = false;
+        }});
+
+    on_receive_number();
   }
 }
 
-void Node::on_receive_result(Connection& from) {
-  _contenders.erase(from.id());
-  on_receive_number();
+void Node::reset_all_numbers() {
+  _my_random_number.reset();
+  each_connection([](Connection& c) { c.random_number.reset(); });
 }
 
 // So that I can use std::unique_ptr with forward declared template
@@ -255,3 +284,4 @@ std::ostream& operator<<(std::ostream& os, const Node& node) {
   }
   return os;
 }
+

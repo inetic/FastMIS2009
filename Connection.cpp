@@ -19,6 +19,7 @@ Connection::Connection(Node& node, Endpoint remote_endpoint)
   , _is_sending(false)
   , _rx_sequence_id(0)
   , _tx_sequence_id(0)
+  , is_contender(false)
 {
 }
 
@@ -55,6 +56,7 @@ void Connection::on_tick() {
     _node.disconnect(_remote_endpoint);
     return;
   }
+
   ++_missed_ping_count;
 
   if (!_tx_messages.empty()) {
@@ -121,8 +123,8 @@ void Connection::use_message(const StatusMsg& msg) {
 
 //------------------------------------------------------------------------------
 void Connection::use_message(const ResultMsg& msg) {
-  leader_status = msg.leader_status;
-  _node.on_receive_result(*this);
+  leader_result = msg.leader_status;
+  _node.on_receive_result();
 }
 
 //------------------------------------------------------------------------------

@@ -63,6 +63,8 @@ public:
   // FastMIS related data.
   boost::optional<float>        random_number;
   boost::optional<LeaderStatus> leader_status;
+  boost::optional<LeaderStatus> leader_result;
+  bool                          is_contender;
 };
 
 #endif // ifndef __CONNECTION_H__

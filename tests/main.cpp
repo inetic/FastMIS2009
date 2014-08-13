@@ -201,12 +201,12 @@ BOOST_AUTO_TEST_CASE(two_nodes_fast_mis) {
 
 //------------------------------------------------------------------------------
 BOOST_AUTO_TEST_CASE(graph) {
-  //while (true) {
+  while (true) {
     Random::instance().initialize_with_random_seed();
 
     // Problematic seeds.
-    //Random::instance().initialize_with_seed(5738315);
-    //Random::instance().initialize_with_seed(1616892264);
+    //Random::instance().initialize_with_seed(?);
+    Random::instance().initialize_with_seed(942634526);
 
     log("New seed: ", Random::instance().get_seed());
 
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(graph) {
 
     Graph graph(ios);
 
-    graph.generate_connected(4);
+    graph.generate_connected(10);
 
     log("----------------------------------");
     log(graph);
@@ -235,7 +235,8 @@ BOOST_AUTO_TEST_CASE(graph) {
         });
 
     ios.run();
-  //}
+    log("---------------------------------- FIN");
+  }
 }
 
 //------------------------------------------------------------------------------

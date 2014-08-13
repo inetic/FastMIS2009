@@ -51,24 +51,30 @@ private:
   void on_receive_number();
   void on_received_start();
   void on_receive_status();
-  void on_receive_result(Connection& from);
+  void on_receive_result();
 
   friend class Connection;
 
   bool smaller_than_others(float) const;
   bool has_number_from_all() const;
-  bool has_status_from_all() const;
+  bool has_status_from_all_contenders() const;
+  bool has_result_from_all_contenders() const;
+  bool has_result_from_all_connections() const;
   bool has_leader_neighbor() const;
 
   void start_fast_mis();
 
   void on_algorithm_completed();
-  template<class Message, class... Args> void broadcast(Args...);
 
-  template<class F> void each_contender(const F&);
-  template<class F> void each_contender(const F&) const;
+  template<class Message, class... Args> void broadcast(Args...);
+  template<class Message, class... Args> void broadcast_contenders(Args...);
+
+  template<class F> void each_connection(const F&);
+  template<class F> void each_connection(const F&) const;
 
   boost::asio::ip::udp::socket& socket() { return _socket; }
+
+  void reset_all_numbers();
 
 private:
   friend std::ostream& operator<<(std::ostream&, const Node&);
@@ -82,7 +88,7 @@ private:
   // FastMIS related data.
   LeaderStatus           _leader_status = LeaderStatus::undecided;
   bool                   _fast_mis_started = false;
-  std::set<ID>           _contenders;
+  //std::set<ID>           _contenders;
   boost::optional<float> _my_random_number;
   std::function<void()>  _on_algorithm_completed;
 };
