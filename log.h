@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#ifndef __NDEBUG
+#ifndef NDEBUG
 template<typename T>
 void log(const T& arg) {
   std::cout << arg << std::endl;
@@ -15,8 +15,7 @@ void log(const T& arg, const Ts&... args) {
   log(args...);
 }
 #else
-template<typename... Ts>
-void log(const Ts&... args) {}
+template<typename... Ts> void log(const Ts&...) {}
 #endif
 
 #endif // ifndef __LOG_H__
