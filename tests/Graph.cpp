@@ -11,10 +11,6 @@ using namespace std;
 static unsigned int get_random_number(int max) {
   if (max == 0) { return 0; }
   return Random::instance().generate_int(0, max - 1);
-  //typedef boost::random_device Dev;
-  //Dev generate;
-  //Dev::result_type random_number = generate();
-  //return random_number - Dev::min();
 }
 
 Graph::Graph(asio::io_service& ios)

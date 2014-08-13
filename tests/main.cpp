@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(graph) {
 
     // Problematic seeds.
     //Random::instance().initialize_with_seed(5738315);
-    Random::instance().initialize_with_seed(1616892264);
+    //Random::instance().initialize_with_seed(1616892264);
 
     log("New seed: ", Random::instance().get_seed());
 

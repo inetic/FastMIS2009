@@ -28,14 +28,7 @@ void Connection::send(const Message& msg) {
   _is_sending = true;
 
   stringstream ss;
-  ss << msg.label() << " ";
-  msg.to_stream(ss);
-
-  //if (msg.label() != "ping") {
-  //  cout << _node.id() << " -> " << id() << " " << msg.label() << " ";
-  //  msg.to_stream(cout);
-  //  cout << " " << endl;
-  //}
+  ss << msg.label() << " " << msg;
 
   auto destroyed = _destroy_guard.indicator();
 
@@ -91,6 +84,11 @@ template<class Msg> void Connection::receive(const Msg& msg) {
   ack_message(msg.ack_sequence_number);
 
   if (msg.sequence_number == _rx_sequence_id + 1) {
+    // DEBUG
+    if (msg.label() != "ping") {
+      log(_node.id(), " <- ", id(), " ", msg.label(), " ",msg);
+    }
+
     keep_alive();
     _rx_sequence_id = msg.sequence_number;
     use_message(msg);
@@ -105,28 +103,24 @@ void Connection::use_message(const PingMsg&) {
 }
 
 //------------------------------------------------------------------------------
-void Connection::use_message(const StartMsg& msg) {
-  log(_node.id(), " <- ", id(), " ", msg.label(), " ",msg);
+void Connection::use_message(const StartMsg&) {
   _node.on_received_start();
 }
 
 //------------------------------------------------------------------------------
 void Connection::use_message(const NumberMsg& msg) {
-  log(_node.id(), " <- ", id(), " ", msg.label(), " ", msg);
   random_number.reset(msg.random_number);
   _node.on_receive_number();
 }
 
 //------------------------------------------------------------------------------
 void Connection::use_message(const StatusMsg& msg) {
-  log(_node.id(), " <- ", id(), " ", msg.label(), " ", msg);
   leader_status = msg.leader_status;
   _node.on_receive_status();
 }
 
 //------------------------------------------------------------------------------
 void Connection::use_message(const ResultMsg& msg) {
-  log(_node.id(), " <- ", id(), " ", msg.label(), " ", msg);
   leader_status = msg.leader_status;
   _node.on_receive_result(*this);
 }
@@ -141,9 +135,6 @@ void Connection::ack_message(uint32_t ack_sequence_number) {
   if (_tx_messages.empty()) return;
 
   if (_tx_messages.front().sequence_number == ack_sequence_number) {
-    //cout << _node.id() << " acked " << _tx_messages.front().label() << " ";
-    //_tx_messages.front().to_stream(cout);
-    //cout << "\n";
     _tx_messages.pop_front();
   }
 }
