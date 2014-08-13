@@ -3,6 +3,8 @@
 #include <boost/random/random_device.hpp>
 #include "Random.h"
 #include "Graph.h"
+#include "WhenAll.h"
+#include "../log.h"
 #include "../Node.h"
 #include "../Connection.h"
 
@@ -100,5 +102,18 @@ std::ostream& operator<<(std::ostream& os, const Graph& g) {
     os << node << endl;
   }
   return os;
+}
+
+void Graph::start_fast_mis(const std::function<void()>& handler) {
+  if (_nodes.empty()) return;
+
+  WhenAll when_all(handler);
+
+  for (auto& node : _nodes) {
+    auto continuation = when_all.make_continuation();
+    node.on_fast_mis_ended([continuation]() { log("ooooooooooooooooo"); continuation(); });
+  }
+
+  _nodes[0].start_fast_mis();
 }
 

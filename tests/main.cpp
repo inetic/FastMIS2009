@@ -8,6 +8,7 @@
 #include "Graph.h"
 #include "constants.h"
 #include "log.h"
+#include "WhenAll.h"
 
 namespace asio = boost::asio;
 namespace pstime = boost::posix_time;
@@ -200,9 +201,10 @@ BOOST_AUTO_TEST_CASE(two_nodes_fast_mis) {
 }
 
 //------------------------------------------------------------------------------
-BOOST_AUTO_TEST_CASE(many_3_node_graphs) {
+BOOST_AUTO_TEST_CASE(many_5_node_graphs) {
   while (1000) {
-    Random::instance().initialize_with_random_seed();
+    //Random::instance().initialize_with_random_seed();
+    Random::instance().initialize_with_seed(3771463719);
 
     log("New seed: ", Random::instance().get_seed());
 
@@ -210,7 +212,7 @@ BOOST_AUTO_TEST_CASE(many_3_node_graphs) {
 
     Graph graph(ios);
 
-    graph.generate_connected(3);
+    graph.generate_connected(5);
 
     log("----------------------------------");
     log(graph);
@@ -218,19 +220,23 @@ BOOST_AUTO_TEST_CASE(many_3_node_graphs) {
 
     asio::deadline_timer timer(ios);
 
-    graph[0].start_fast_mis([&]() {
-        // Give time to other nodes to decide.
-        timer.expires_from_now(
-          milliseconds(5*graph.size()*PING_TIMEOUT_MS*MAX_MISSED_PING_COUNT));
+    graph.start_fast_mis([&]() {
+        BOOST_REQUIRE(graph.every_node_stopped());
+        BOOST_REQUIRE(graph.every_node_decided());
+        BOOST_REQUIRE(graph.every_neighbor_decided());
+        graph.shutdown();
+        //// Give time to other nodes to decide.
+        //timer.expires_from_now(
+        //  milliseconds(5*graph.size()*PING_TIMEOUT_MS*MAX_MISSED_PING_COUNT));
 
-        log("=============== done");
-        timer.async_wait([&](Error) {
-          log("Shutting down");
-          BOOST_REQUIRE(graph.every_node_stopped());
-          BOOST_REQUIRE(graph.every_node_decided());
-          BOOST_REQUIRE(graph.every_neighbor_decided());
-          graph.shutdown();
-          });
+        //log("=============== done");
+        //timer.async_wait([&](Error) {
+        //  log("Shutting down");
+        //  BOOST_REQUIRE(graph.every_node_stopped());
+        //  BOOST_REQUIRE(graph.every_node_decided());
+        //  BOOST_REQUIRE(graph.every_neighbor_decided());
+        //  graph.shutdown();
+        //  });
         });
 
     ios.run();

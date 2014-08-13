@@ -6,12 +6,12 @@
 #ifndef NDEBUG
 template<typename T>
 void log(const T& arg) {
-  std::cout << arg << std::endl;
+  std::cerr << arg << std::endl;
 }
 
 template<typename T, typename... Ts>
 void log(const T& arg, const Ts&... args) {
-  std::cout << arg;
+  std::cerr << arg;
   log(args...);
 }
 #else

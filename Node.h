@@ -39,8 +39,14 @@ public:
   ~Node();
 
   template<class Handler> void start_fast_mis(const Handler& handler) {
-    _on_algorithm_completed = handler;
+    on_fast_mis_ended(handler);
     start_fast_mis();
+  }
+
+  void start_fast_mis();
+
+  template<class Handler> void on_fast_mis_ended(const Handler& handler) {
+    _on_algorithm_completed = handler;
   }
 
   bool is_running_mis() const { return _fast_mis_started; }
@@ -69,7 +75,6 @@ private:
   bool has_result_from_all_connections() const;
   bool has_leader_neighbor() const;
 
-  void start_fast_mis();
 
   void on_algorithm_completed();
 

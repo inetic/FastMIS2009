@@ -21,10 +21,12 @@ public:
   void receive_data(const std::string&);
 
   ID id() const { return ID(_remote_endpoint); }
+  ID node_id() const;
 
   template<class Msg, class... Args> void schedule_send(Args... args) {
     bool was_empty = _tx_messages.empty();
     Msg* msg = new Msg(++_tx_sequence_id, _rx_sequence_id, args...);
+    log(node_id(), " -> ", id(), " ", msg->label(), " ", *msg);
     _tx_messages.push_back(msg);
     if (was_empty) send_front_message();
   }

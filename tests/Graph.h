@@ -22,6 +22,8 @@ public:
 
   size_t size() const { return _nodes.size(); }
 
+  void start_fast_mis(const std::function<void()>&);
+
 private:
   friend std::ostream& operator<<(std::ostream&, const Graph&);
 
