@@ -106,21 +106,6 @@ template<class Message, class... Args> void Node::broadcast_contenders(Args... a
   }
 }
 
-template<class Connections, class F>
-void for_each_connection(Connections& cs, const F& f) {
-  for (auto pair : cs) {
-    f(*pair.second);
-  }
-}
-
-template<class F> void Node::each_connection(const F& f) const {
-  for_each_connection(_connections, f);
-}
-
-template<class F> void Node::each_connection(const F& f) {
-  for_each_connection(_connections, f);
-}
-
 bool Node::has_number_from_all() const {
   bool retval = true;
   each_connection([&](const Connection& c) {

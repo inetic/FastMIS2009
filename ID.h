@@ -22,6 +22,10 @@ public:
     return endpoint < id.endpoint;
   }
 
+  bool operator==(const ID& id) const {
+    return endpoint == id.endpoint;
+  }
+
 private:
   friend std::ostream& operator<<(std::ostream&, const ID&);
 

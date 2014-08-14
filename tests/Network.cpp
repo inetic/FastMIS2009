@@ -2,7 +2,7 @@
 #include <iostream>
 #include <boost/random/random_device.hpp>
 #include "Random.h"
-#include "Graph.h"
+#include "Network.h"
 #include "WhenAll.h"
 #include "../log.h"
 #include "../Node.h"
@@ -16,17 +16,17 @@ static unsigned int get_random_number(int max) {
   return Random::instance().generate_int(0, max - 1);
 }
 
-Graph::Graph(asio::io_service& ios)
+Network::Network(asio::io_service& ios)
   : _io_service(ios)
 {}
 
-void Graph::add_nodes(size_t node_count) {
+void Network::add_nodes(size_t node_count) {
   for (size_t i = 0; i < node_count; ++i) {
     _nodes.push_back(new Node(_io_service));
   }
 }
 
-void Graph::generate_connected(size_t node_count) {
+void Network::generate_connected(size_t node_count) {
   add_nodes(node_count);
 
   if (node_count <= 1) return;
@@ -60,17 +60,38 @@ void Graph::generate_connected(size_t node_count) {
   }
 }
 
-bool Graph::is_MIS() const {
+void Network::extract_connected(Network& result) {
+  if (empty()) return;
+  extract_connected(result, _nodes.begin());
+}
+
+void Network::extract_connected(Network& result, Nodes::iterator start) {
+  auto node = _nodes.release(start).release();
+  result._nodes.push_back(node);
+
+  node->each_connection([&](Connection& c) {
+      auto neighbor = std::find_if
+        ( _nodes.begin(), _nodes.end()
+        , [&c](const Node& n) { return n.id() == c.id(); });
+
+      // Already extracted?
+      if (neighbor == _nodes.end()) { return; }
+
+      extract_connected(result, neighbor);
+      });
+}
+
+bool Network::is_MIS() const {
   assert("TODO" && 0);
 }
 
-void Graph::shutdown() {
+void Network::shutdown() {
   for (auto& n : _nodes) {
     n.shutdown();
   }
 }
 
-bool Graph::every_node_stopped() const {
+bool Network::every_node_stopped() const {
   for (const auto& node : _nodes) {
     if (node.is_running_mis()) {
       return false;
@@ -79,7 +100,7 @@ bool Graph::every_node_stopped() const {
   return true;
 }
 
-bool Graph::every_node_decided() const {
+bool Network::every_node_decided() const {
   for (const auto& node : _nodes) {
     if (node.leader_status() == LeaderStatus::undecided) {
       return false;
@@ -88,7 +109,7 @@ bool Graph::every_node_decided() const {
   return true;
 }
 
-bool Graph::every_neighbor_decided() const {
+bool Network::every_neighbor_decided() const {
   for (const auto& node : _nodes) {
     if (!node.every_neighbor_decided()) {
       return false;
@@ -97,7 +118,7 @@ bool Graph::every_neighbor_decided() const {
   return true;
 }
 
-std::ostream& operator<<(std::ostream& os, const Graph& g) {
+std::ostream& operator<<(std::ostream& os, const Network& g) {
   for (auto i = g._nodes.begin(); i != g._nodes.end(); ++i) {
     os << *i;
     if (i != --g._nodes.end()) {
@@ -107,7 +128,7 @@ std::ostream& operator<<(std::ostream& os, const Graph& g) {
   return os;
 }
 
-void Graph::start_fast_mis(const std::function<void()>& handler) {
+void Network::start_fast_mis(const std::function<void()>& handler) {
   if (_nodes.empty()) return;
 
   WhenAll when_all(handler);

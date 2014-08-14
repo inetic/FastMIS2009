@@ -5,7 +5,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio.hpp>
 #include "Random.h"
-#include "Graph.h"
+#include "Network.h"
 #include "constants.h"
 #include "log.h"
 #include "WhenAll.h"
@@ -215,29 +215,30 @@ BOOST_AUTO_TEST_CASE(two_nodes_fast_mis) {
 }
 
 //------------------------------------------------------------------------------
-BOOST_AUTO_TEST_CASE(many_3_node_graphs) {
-  for (unsigned int i = 0; i < 20; i++) {
+BOOST_AUTO_TEST_CASE(many_3_node_networks) {
+  for (unsigned int i = 0; i < 5; i++) {
     Random::instance().initialize_with_random_seed();
+    //Random::instance().initialize_with_seed(3912132234);
 
     log("New seed: ", Random::instance().get_seed());
 
     asio::io_service ios;
 
-    Graph graph(ios);
+    Network network(ios);
 
-    graph.generate_connected(5);
+    network.generate_connected(3);
 
     log("----------------------------------");
-    log(graph);
+    log(network);
     log("----------------------------------");
 
     asio::deadline_timer timer(ios);
 
-    graph.start_fast_mis([&]() {
-        BOOST_REQUIRE(graph.every_node_stopped());
-        BOOST_REQUIRE(graph.every_node_decided());
-        BOOST_REQUIRE(graph.every_neighbor_decided());
-        graph.shutdown();
+    network.start_fast_mis([&]() {
+        BOOST_REQUIRE(network.every_node_stopped());
+        BOOST_REQUIRE(network.every_node_decided());
+        BOOST_REQUIRE(network.every_neighbor_decided());
+        network.shutdown();
         });
 
     ios.run();
@@ -245,29 +246,29 @@ BOOST_AUTO_TEST_CASE(many_3_node_graphs) {
 }
 
 //------------------------------------------------------------------------------
-BOOST_AUTO_TEST_CASE(many_5_node_graphs) {
-  for (unsigned int i = 0; i < 20; i++) {
+BOOST_AUTO_TEST_CASE(many_5_node_networks) {
+  for (unsigned int i = 0; i < 5; i++) {
     Random::instance().initialize_with_random_seed();
 
     log("New seed: ", Random::instance().get_seed());
 
     asio::io_service ios;
 
-    Graph graph(ios);
+    Network network(ios);
 
-    graph.generate_connected(5);
+    network.generate_connected(5);
 
     log("----------------------------------");
-    log(graph);
+    log(network);
     log("----------------------------------");
 
     asio::deadline_timer timer(ios);
 
-    graph.start_fast_mis([&]() {
-        BOOST_REQUIRE(graph.every_node_stopped());
-        BOOST_REQUIRE(graph.every_node_decided());
-        BOOST_REQUIRE(graph.every_neighbor_decided());
-        graph.shutdown();
+    network.start_fast_mis([&]() {
+        BOOST_REQUIRE(network.every_node_stopped());
+        BOOST_REQUIRE(network.every_node_decided());
+        BOOST_REQUIRE(network.every_neighbor_decided());
+        network.shutdown();
         });
 
     ios.run();
