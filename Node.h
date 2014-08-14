@@ -85,7 +85,6 @@ private:
   bool has_result_from_all_connections() const;
   bool has_leader_neighbor() const;
 
-
   void on_algorithm_completed();
 
   template<class Message, class... Args> void broadcast_contenders(Args...);

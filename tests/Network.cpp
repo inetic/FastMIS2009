@@ -3,6 +3,7 @@
 #include <boost/random/random_device.hpp>
 #include "Random.h"
 #include "Network.h"
+#include "Graph.h"
 #include "WhenAll.h"
 #include "../log.h"
 #include "../Node.h"
@@ -60,29 +61,30 @@ void Network::generate_connected(size_t node_count) {
   }
 }
 
-void Network::extract_connected(Network& result) {
-  if (empty()) return;
-  extract_connected(result, _nodes.begin());
-}
+Graph Network::build_graph() const {
+  Graph result;
 
-void Network::extract_connected(Network& result, Nodes::iterator start) {
-  auto node = _nodes.release(start).release();
-  result._nodes.push_back(node);
+  for (const auto& network_node : _nodes) {
+    auto pair = result.nodes.emplace( network_node.id()
+                                    , network_node.leader_status());
+    auto& graph_node = *pair.first;
 
-  node->each_connection([&](Connection& c) {
-      auto neighbor = std::find_if
-        ( _nodes.begin(), _nodes.end()
-        , [&c](const Node& n) { return n.id() == c.id(); });
+    network_node.each_connection([&](const Connection& c) {
+        const_cast<std::set<ID>&>(graph_node.neighbors).insert(c.id());
+        });
+  }
 
-      // Already extracted?
-      if (neighbor == _nodes.end()) { return; }
-
-      extract_connected(result, neighbor);
-      });
+  return result;
 }
 
 bool Network::is_MIS() const {
-  assert("TODO" && 0);
+  std::vector<Graph> graphs = build_graph().connected_subgraphs();
+
+  for (const auto& graph : graphs) {
+    if (!graph.is_MIS()) { return false; }
+  }
+
+  return true;
 }
 
 void Network::shutdown() {

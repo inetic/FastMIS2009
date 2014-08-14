@@ -1,6 +1,9 @@
 #ifndef __LEADER_STATUS_H__
 #define __LEADER_STATUS_H__
 
+#include <iostream>
+#include <stdexcept>
+
 enum class LeaderStatus { undecided, follower, leader };
 
 inline std::ostream& operator<<(std::ostream& os, LeaderStatus ls) {

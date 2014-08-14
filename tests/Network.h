@@ -3,6 +3,7 @@
 
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/asio.hpp>
+#include "Graph.h"
 #include "../Node.h"
 
 class Network {
@@ -33,6 +34,8 @@ public:
   void extract_connected(Network&);
 
   bool empty() const { return _nodes.empty(); }
+
+  Graph build_graph() const;
 
 private:
   void extract_connected(Network&, Nodes::iterator);
