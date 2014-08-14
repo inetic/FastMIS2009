@@ -11,6 +11,9 @@ class PeriodicTimer {
   using Duration = boost::posix_time::time_duration;
 
 public:
+  PeriodicTimer(const PeriodicTimer&)                  = delete;
+  const PeriodicTimer& operator=(const PeriodicTimer&) = delete;
+
   template<class Callback>
   PeriodicTimer( const Duration& duration
                , boost::asio::io_service& ios

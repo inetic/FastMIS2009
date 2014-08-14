@@ -13,7 +13,7 @@ public:
     }
 
   private:
-    Indicator(const std::shared_ptr<bool> was_destroyed)
+    Indicator(const std::shared_ptr<bool>& was_destroyed)
       : _was_destroyed(was_destroyed) { }
 
   private:

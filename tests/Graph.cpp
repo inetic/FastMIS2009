@@ -98,8 +98,11 @@ bool Graph::every_neighbor_decided() const {
 }
 
 std::ostream& operator<<(std::ostream& os, const Graph& g) {
-  for (const auto& node : g._nodes) {
-    os << node << endl;
+  for (auto i = g._nodes.begin(); i != g._nodes.end(); ++i) {
+    os << *i;
+    if (i != --g._nodes.end()) {
+      os << endl;
+    }
   }
   return os;
 }
@@ -110,8 +113,7 @@ void Graph::start_fast_mis(const std::function<void()>& handler) {
   WhenAll when_all(handler);
 
   for (auto& node : _nodes) {
-    auto continuation = when_all.make_continuation();
-    node.on_fast_mis_ended([continuation]() { log("ooooooooooooooooo"); continuation(); });
+    node.on_fast_mis_ended(when_all.make_continuation());
   }
 
   _nodes[0].start_fast_mis();

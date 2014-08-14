@@ -25,8 +25,10 @@ private:
 public:
   Node(boost::asio::io_service& io_service);
 
-  Node(Node&&) = default;
-  Node(const Node&) = delete;
+  // Node is not movable because elements of _connections
+  // hold a reference to this node.
+  Node(Node&&)                       = delete;
+  Node(const Node&)                  = delete;
   const Node& operator=(const Node&) = delete;
 
   ID id() const { return _id; }
@@ -39,8 +41,6 @@ public:
   boost::asio::io_service& get_io_service() { return _io_service; }
 
   bool is_connected_to(Endpoint) const;
-
-  ~Node();
 
   template<class Handler> void start_fast_mis(const Handler& handler) {
     on_fast_mis_ended(handler);

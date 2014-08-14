@@ -18,6 +18,9 @@ class Connection {
 public:
   Connection(Node&, Endpoint remote_endpoint);
 
+  Connection(const Connection&) = delete;
+  const Connection& operator=(const Connection&) = delete;
+
   void receive_data(const std::string&);
 
   ID id() const { return ID(_remote_endpoint); }

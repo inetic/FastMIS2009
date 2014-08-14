@@ -28,7 +28,7 @@ private:
   boost::asio::ip::udp::endpoint endpoint;
 };
 
-#ifndef _NDEBUG
+#ifndef NDEBUG
 inline std::ostream& operator<<(std::ostream& os, const ID& id) {
   return os << id.endpoint.port();
 }

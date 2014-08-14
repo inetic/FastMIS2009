@@ -302,10 +302,6 @@ void Node::reset_all_numbers() {
   each_connection([](Connection& c) { c.random_number.reset(); });
 }
 
-// So that I can use std::unique_ptr with forward declared template
-// parameter in Node definition.
-Node::~Node() {}
-
 std::ostream& operator<<(std::ostream& os, const Node& node) {
   os << node.id() << ": ";
   for (const auto& pair : node._connections) {

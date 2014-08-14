@@ -199,26 +199,54 @@ BOOST_AUTO_TEST_CASE(two_nodes_fast_mis) {
 
   asio::deadline_timer timer(ios);
 
-  node0.start_fast_mis([&]() {
+  WhenAll when_all([&]() {
       BOOST_REQUIRE(node0.is_connected_to(node1_ep));
       BOOST_REQUIRE(node1.is_connected_to(node0_ep));
-
-      // Give time to other nodes to decide.
-      timer.expires_from_now(
-        milliseconds(PING_TIMEOUT_MS*MAX_MISSED_PING_COUNT));
-
-      timer.async_wait([&](Error) {
-        node0.shutdown();
-        node1.shutdown();
-        });
+      node0.shutdown();
+      node1.shutdown();
       });
+
+  node0.on_fast_mis_ended(when_all.make_continuation());
+  node1.on_fast_mis_ended(when_all.make_continuation());
+
+  node0.start_fast_mis();
 
   ios.run();
 }
 
 //------------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(many_3_node_graphs) {
+  for (unsigned int i = 0; i < 20; i++) {
+    Random::instance().initialize_with_random_seed();
+
+    log("New seed: ", Random::instance().get_seed());
+
+    asio::io_service ios;
+
+    Graph graph(ios);
+
+    graph.generate_connected(5);
+
+    log("----------------------------------");
+    log(graph);
+    log("----------------------------------");
+
+    asio::deadline_timer timer(ios);
+
+    graph.start_fast_mis([&]() {
+        BOOST_REQUIRE(graph.every_node_stopped());
+        BOOST_REQUIRE(graph.every_node_decided());
+        BOOST_REQUIRE(graph.every_neighbor_decided());
+        graph.shutdown();
+        });
+
+    ios.run();
+  }
+}
+
+//------------------------------------------------------------------------------
 BOOST_AUTO_TEST_CASE(many_5_node_graphs) {
-  for (unsigned int i = 0; i < 100; i++) {
+  for (unsigned int i = 0; i < 20; i++) {
     Random::instance().initialize_with_random_seed();
 
     log("New seed: ", Random::instance().get_seed());
