@@ -8,11 +8,15 @@
 
 class PeriodicTimer {
   using Error = boost::system::error_code;
+  using Duration = boost::posix_time::time_duration;
 
 public:
   template<class Callback>
-  PeriodicTimer(boost::asio::io_service& ios, Callback&& callback)
+  PeriodicTimer( const Duration& duration
+               , boost::asio::io_service& ios
+               , Callback&& callback)
     : _timer(ios)
+    , _duration(duration)
     , _callback(callback)
   {
     auto destroyed = _destroy_guard.indicator();
@@ -34,7 +38,7 @@ private:
     callback_copy();
     if (destroyed) return;
 
-    _timer.expires_from_now(milliseconds(PING_TIMEOUT_MS));
+    _timer.expires_from_now(_duration);
 
     _timer.async_wait([this, destroyed](Error) {
         if (destroyed) return;
@@ -45,6 +49,7 @@ private:
 private:
   DestroyGuard                _destroy_guard;
   boost::asio::deadline_timer _timer;
+  Duration                    _duration;
   std::function<void()>       _callback;
 };
 

@@ -17,7 +17,8 @@ using namespace std;
 using Error = boost::system::error_code;
 
 //------------------------------------------------------------------------------
-BOOST_AUTO_TEST_CASE(one_node) {
+// This tests whether shutting down one node terminates it, thus no asserts.
+BOOST_AUTO_TEST_CASE(one_node_shutdown) {
   asio::io_service ios;
 
   Node node(ios);
@@ -32,7 +33,8 @@ BOOST_AUTO_TEST_CASE(one_node) {
 }
 
 //------------------------------------------------------------------------------
-BOOST_AUTO_TEST_CASE(two_nodes) {
+// This tests whether shutting down nodes terminates them, thus no asserts.
+BOOST_AUTO_TEST_CASE(two_nodes_shutdown) {
   asio::io_service ios;
 
   Node node0(ios);
@@ -80,9 +82,16 @@ BOOST_AUTO_TEST_CASE(disconnect_two_connected_nodes) {
   auto node0_ep = node0.local_endpoint();
   auto node1_ep = node1.local_endpoint();
 
+  // Makes the test finish quicker
+  unsigned int max_missed_ping_count = 5;
+  milliseconds ping_timeout(30);
+
+  node1.set_ping_timeout(ping_timeout);
+  node1.set_max_missed_ping_count(max_missed_ping_count);
+
   node0.connect(node1.local_endpoint());
 
-  asio::deadline_timer timer(ios, milliseconds(5*PING_TIMEOUT_MS));
+  asio::deadline_timer timer(ios, ping_timeout*5);
 
   timer.async_wait([&](Error) {
       BOOST_REQUIRE(node0.is_connected_to(node1_ep));
@@ -90,8 +99,7 @@ BOOST_AUTO_TEST_CASE(disconnect_two_connected_nodes) {
 
       node0.shutdown();
 
-      timer.expires_from_now(
-        milliseconds(2*PING_TIMEOUT_MS*MAX_MISSED_PING_COUNT));
+      timer.expires_from_now(ping_timeout * max_missed_ping_count * 2);
 
       timer.async_wait([&](Error) {
         BOOST_REQUIRE(!node1.is_connected_to(node0_ep));
@@ -137,6 +145,15 @@ BOOST_AUTO_TEST_CASE(disconnect_three_connected_nodes) {
   Node node1(ios);
   Node node2(ios);
 
+  // Makes the test finish quicker
+  unsigned int max_missed_ping_count = 5;
+  milliseconds ping_timeout(30);
+
+  node1.set_ping_timeout(ping_timeout);
+  node1.set_max_missed_ping_count(max_missed_ping_count);
+  node2.set_ping_timeout(ping_timeout);
+  node2.set_max_missed_ping_count(max_missed_ping_count);
+
   auto node0_ep = node0.local_endpoint();
   auto node1_ep = node1.local_endpoint();
   auto node2_ep = node2.local_endpoint();
@@ -154,8 +171,7 @@ BOOST_AUTO_TEST_CASE(disconnect_three_connected_nodes) {
 
       node0.shutdown();
 
-      timer.expires_from_now(
-        milliseconds(2*PING_TIMEOUT_MS*MAX_MISSED_PING_COUNT));
+      timer.expires_from_now(ping_timeout * max_missed_ping_count * 2);
 
       timer.async_wait([&](Error) {
         BOOST_REQUIRE(!node0.is_connected_to(node1_ep));

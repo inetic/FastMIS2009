@@ -14,7 +14,8 @@ using Error = boost::system::error_code;
 Connection::Connection(Node& node, Endpoint remote_endpoint)
   : _node(node)
   , _remote_endpoint(remote_endpoint)
-  , _periodic_timer(node.get_io_service(), [=]() { on_tick(); })
+  , _periodic_timer( node._ping_timeout
+                   , node.get_io_service(), [=]() { on_tick(); })
   , _missed_ping_count(0)
   , _is_sending(false)
   , _rx_sequence_id(0)
@@ -51,7 +52,7 @@ void Connection::send_front_message() {
 
 //------------------------------------------------------------------------------
 void Connection::on_tick() {
-  if (_missed_ping_count > MAX_MISSED_PING_COUNT) {
+  if (_missed_ping_count > _node._max_missed_ping_count) {
     // Disonnection will destroy this object, so make sure you
     // return immediately.
     _node.disconnect(_remote_endpoint);

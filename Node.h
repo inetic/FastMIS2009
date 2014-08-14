@@ -5,6 +5,7 @@
 #include <set>
 #include <boost/uuid/uuid.hpp>
 #include <boost/optional.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include "Endpoint.h"
 #include "ID.h"
 #include "LeaderStatus.h"
@@ -18,7 +19,8 @@ private:
 
   using ConnectionPtr = std::shared_ptr<Connection>;
   // TODO: Do I need to store connections as pointers?
-  using Connections   = std::map<ID, ConnectionPtr>;
+  using Connections = std::map<ID, ConnectionPtr>;
+  using Duration    = boost::posix_time::time_duration;
 
 public:
   Node(boost::asio::io_service& io_service);
@@ -57,6 +59,9 @@ public:
 
   bool every_neighbor_decided() const;
 
+  void set_ping_timeout(Duration duration) { _ping_timeout = duration; }
+  void set_max_missed_ping_count(size_t n) { _max_missed_ping_count = n; }
+
 private:
   void receive_data();
   void use_data(Endpoint sender, std::string&&);
@@ -80,7 +85,6 @@ private:
 
   void on_algorithm_completed();
 
-  template<class Message, class... Args> void broadcast(Args...);
   template<class Message, class... Args> void broadcast_contenders(Args...);
 
   template<class F> void each_connection(const F&);
@@ -99,11 +103,13 @@ private:
   Connections                   _connections;
   bool                          _was_shut_down;
 
+  Duration      _ping_timeout;
+  unsigned int  _max_missed_ping_count;
+
   // FastMIS related data.
   State                  _state;
   LeaderStatus           _leader_status = LeaderStatus::undecided;
   bool                   _fast_mis_started = false;
-  //std::set<ID>           _contenders;
   boost::optional<float> _my_random_number;
   std::function<void()>  _on_algorithm_completed;
 };

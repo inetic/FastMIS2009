@@ -17,13 +17,14 @@ Node::Node(boost::asio::io_service& ios)
   , _socket(ios, udp::endpoint(udp::v4(), 0)) // Assign random port
   , _id(_socket.local_endpoint())
   , _was_shut_down(false)
+  , _ping_timeout(boost::posix_time::milliseconds(PING_TIMEOUT_MS))
+  , _max_missed_ping_count(MAX_MISSED_PING_COUNT)
   , _state(idle)
 {
   receive_data();
 }
 
 void Node::shutdown() {
-  log(id(), " shutdown");
   _was_shut_down = true;
   _socket.close();
   _connections.clear();
@@ -95,13 +96,6 @@ void Node::disconnect(Endpoint remote_endpoint) {
 
 bool Node::is_connected_to(Endpoint remote_endpoint) const {
   return _connections.count(ID(remote_endpoint)) != 0;
-}
-
-template<class Message, class... Args> void Node::broadcast(Args... args) {
-  for (auto pair : _connections) {
-    auto& c = *pair.second;
-    c.schedule_send<Message>(args...);
-  }
 }
 
 template<class Message, class... Args> void Node::broadcast_contenders(Args... args) {
@@ -212,7 +206,7 @@ void Node::start_fast_mis() {
   reset_all_numbers();
   _leader_status = LeaderStatus::undecided;
   _fast_mis_started = true;
-  broadcast<StartMsg>();
+  broadcast_contenders<StartMsg>();
   on_receive_number();
 }
 
@@ -241,7 +235,8 @@ void Node::on_receive_number() {
     _leader_status = LeaderStatus::leader;
   }
 
-  // We don't these anymore and they need to be unsed for the next stage.
+  // We don't need these anymore and they need
+  // to be unsed for the next stage.
   reset_all_numbers();
 
   broadcast_contenders<Update1Msg>(_leader_status);
@@ -273,11 +268,6 @@ void Node::on_receive_update2() {
 
   if (!has_update2_from_all_contenders()) return;
 
-  log(id(), " Got all U2");
-  each_connection([&](Connection& c) {
-      log(id(), "     from: ", c.id(), " ", (c.is_contender?"contender":"not contender"));
-      });
-
   each_connection([&](Connection& c) {
       if (!c.is_contender) return;
       if (*c.update2 != LeaderStatus::undecided) {
@@ -304,9 +294,7 @@ void Node::on_receive_update2() {
 void Node::on_receive_result() {
   assert(_fast_mis_started);
   if (!every_neighbor_decided()) return;
-  log(id(), " aaaaaaaaaaaaaaaaaaaaaaaaaaaa 1");
   on_algorithm_completed();
-  log(id(), " aaaaaaaaaaaaaaaaaaaaaaaaaaaa 2");
 }
 
 void Node::reset_all_numbers() {
