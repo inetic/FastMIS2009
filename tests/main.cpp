@@ -17,6 +17,174 @@ using namespace std;
 using Error = boost::system::error_code;
 
 //------------------------------------------------------------------------------
+// Test if graph tests are correct.
+BOOST_AUTO_TEST_CASE(graph_tests) {
+  { // 0 nodes; 0 edges
+    Graph g;
+    BOOST_REQUIRE(g.is_MIS());
+  }
+
+  { // 1 nodes; 0 edges; 0
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::follower);
+    BOOST_REQUIRE(!g.is_MIS());
+  }
+
+  { // 1 nodes; 0 edges; 1
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::leader);
+    BOOST_REQUIRE(g.is_MIS());
+  }
+
+  { // 2 nodes; 0 edges; 0
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::follower);
+    g.nodes.emplace(1, LeaderStatus::follower);
+    BOOST_REQUIRE(!g.is_MIS());
+  }
+
+  { // 2 nodes; 1 edges
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::follower);
+    g.nodes.emplace(1, LeaderStatus::leader);
+    g.connect(0,1);
+    BOOST_REQUIRE(g.is_MIS());
+  }
+
+  { // 2 nodes; 1 edges
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::leader);
+    g.nodes.emplace(1, LeaderStatus::leader);
+    g.connect(0,1);
+    BOOST_REQUIRE(!g.is_MIS());
+  }
+
+  { // 3 nodes; 2 edges; 0
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::follower);
+    g.nodes.emplace(1, LeaderStatus::follower);
+    g.nodes.emplace(2, LeaderStatus::follower);
+    g.connect(0,1);
+    g.connect(1,2);
+    BOOST_REQUIRE(!g.is_MIS());
+  }
+
+  { // 3 nodes; 2 edges; 1
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::leader);
+    g.nodes.emplace(1, LeaderStatus::follower);
+    g.nodes.emplace(2, LeaderStatus::follower);
+    g.connect(0,1);
+    g.connect(1,2);
+    BOOST_REQUIRE(!g.is_MIS());
+  }
+
+  { // 3 nodes; 2 edges; 2
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::follower);
+    g.nodes.emplace(1, LeaderStatus::leader);
+    g.nodes.emplace(2, LeaderStatus::follower);
+    g.connect(0,1);
+    g.connect(1,2);
+    BOOST_REQUIRE(g.is_MIS());
+  }
+
+  { // 3 nodes; 2 edges; 3
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::leader);
+    g.nodes.emplace(1, LeaderStatus::leader);
+    g.nodes.emplace(2, LeaderStatus::follower);
+    g.connect(0,1);
+    g.connect(1,2);
+    BOOST_REQUIRE(!g.is_MIS());
+  }
+
+  { // 3 nodes; 2 edges; 4
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::follower);
+    g.nodes.emplace(1, LeaderStatus::follower);
+    g.nodes.emplace(2, LeaderStatus::leader);
+    g.connect(0,1);
+    g.connect(1,2);
+    BOOST_REQUIRE(!g.is_MIS());
+  }
+
+  { // 3 nodes; 2 edges; 5
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::leader);
+    g.nodes.emplace(1, LeaderStatus::follower);
+    g.nodes.emplace(2, LeaderStatus::leader);
+    g.connect(0,1);
+    g.connect(1,2);
+    BOOST_REQUIRE(g.is_MIS());
+  }
+
+  { // 3 nodes; 2 edges; 6
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::follower);
+    g.nodes.emplace(1, LeaderStatus::leader);
+    g.nodes.emplace(2, LeaderStatus::leader);
+    g.connect(0,1);
+    g.connect(1,2);
+    BOOST_REQUIRE(!g.is_MIS());
+  }
+
+  { // 3 nodes; 2 edges; 7
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::leader);
+    g.nodes.emplace(1, LeaderStatus::leader);
+    g.nodes.emplace(2, LeaderStatus::leader);
+    g.connect(0,1);
+    g.connect(1,2);
+    BOOST_REQUIRE(!g.is_MIS());
+  }
+
+  { // 3 nodes; 3 edges; 0 leaders
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::follower);
+    g.nodes.emplace(1, LeaderStatus::follower);
+    g.nodes.emplace(2, LeaderStatus::follower);
+    g.connect(0,1);
+    g.connect(1,2);
+    g.connect(2,0);
+    BOOST_REQUIRE(!g.is_MIS());
+  }
+
+  { // 3 nodes; 3 edges; 1 leader
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::leader);
+    g.nodes.emplace(1, LeaderStatus::follower);
+    g.nodes.emplace(2, LeaderStatus::follower);
+    g.connect(0,1);
+    g.connect(1,2);
+    g.connect(2,0);
+    BOOST_REQUIRE(g.is_MIS());
+  }
+
+  { // 3 nodes; 3 edges; 2 leaders
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::leader);
+    g.nodes.emplace(1, LeaderStatus::leader);
+    g.nodes.emplace(2, LeaderStatus::follower);
+    g.connect(0,1);
+    g.connect(1,2);
+    g.connect(2,0);
+    BOOST_REQUIRE(!g.is_MIS());
+  }
+
+  { // 3 nodes; 3 edges; 3 leaders
+    Graph g;
+    g.nodes.emplace(0, LeaderStatus::leader);
+    g.nodes.emplace(1, LeaderStatus::leader);
+    g.nodes.emplace(2, LeaderStatus::leader);
+    g.connect(0,1);
+    g.connect(1,2);
+    g.connect(2,0);
+    BOOST_REQUIRE(!g.is_MIS());
+  }
+}
+
+//------------------------------------------------------------------------------
 // This tests whether shutting down one node terminates it, thus no asserts.
 BOOST_AUTO_TEST_CASE(one_node_shutdown) {
   asio::io_service ios;

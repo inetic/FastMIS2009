@@ -23,6 +23,7 @@ struct Graph {
     bool operator<(const Node& other) const { return id < other.id; }
   };
 
+  void connect(ID, ID);
   std::vector<Graph> connected_subgraphs() const;
   bool is_MIS() const;
 

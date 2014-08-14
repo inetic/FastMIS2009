@@ -8,9 +8,15 @@
 //       option. If its only to be run on a local network, then it
 //       should be safe (?).
 class ID {
+  using UDP = boost::asio::ip::udp;
+
 public:
   ID() {}
-  ID(boost::asio::ip::udp::endpoint ep)
+
+  // For testing only
+  ID(unsigned short i) : ID(UDP::endpoint(UDP::v4(), i)) { }
+
+  ID(UDP::endpoint ep)
   {
     if (ep.address().is_unspecified()) {
       ep.address(boost::asio::ip::address_v4::loopback());

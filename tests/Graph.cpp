@@ -22,6 +22,14 @@ void extract_connected_subgraph(Graph& g, Nodes::iterator i, Graph& target) {
   }
 }
 
+void Graph::connect(ID i, ID j) {
+  auto ni = nodes.find(i);
+  auto nj = nodes.find(j);
+  assert(ni != nodes.end() && nj != nodes.end());
+  const_cast<std::set<ID>&>(ni->neighbors).insert(j);
+  const_cast<std::set<ID>&>(nj->neighbors).insert(i);
+}
+
 vector<Graph> Graph::connected_subgraphs() const {
   vector<Graph> result;
 
@@ -53,7 +61,7 @@ bool Graph::is_MIS() const {
       case LeaderStatus::undecided:
         return false;
       case LeaderStatus::follower:
-        if (!has_leader_neighbor(*this, node)) return false;
+        if (!has_leader_neighbor(*this, node)) { return false; }
         break;
       case LeaderStatus::leader:
         if (has_leader_neighbor(*this, node)) return false;
