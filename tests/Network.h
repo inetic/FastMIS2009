@@ -25,8 +25,9 @@ public:
   bool every_node_decided() const;
   bool every_neighbor_decided() const;
 
+  Nodes::iterator begin() { return _nodes.begin(); }
+  Nodes::iterator end()   { return _nodes.end(); }
   Node& operator[](size_t i) { return _nodes[i]; }
-
 
   void start_fast_mis(const std::function<void()>&);
   void start_fast_mis();

@@ -511,8 +511,47 @@ BOOST_AUTO_TEST_CASE(multirun) {
 }
 
 //------------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(concurrent_starts) {
+  for (unsigned int i = 0; i < 10; i++) {
+    Random::instance().initialize_with_random_seed();
+    log("New seed: ", Random::instance().get_seed());
+
+    asio::io_service ios;
+
+    Network network(ios);
+
+    network.generate_connected(7);
+
+    log("----------------------------------");
+    log(network);
+    log("----------------------------------");
+
+    asio::deadline_timer timer(ios);
+
+    WhenAll when_all([&]() {
+        BOOST_REQUIRE(network.every_node_stopped());
+        BOOST_REQUIRE(network.every_node_decided());
+        BOOST_REQUIRE(network.every_neighbor_decided());
+        BOOST_REQUIRE(network.is_MIS());
+
+        network.shutdown();
+        });
+
+    for (auto& node : network) {
+      node.on_fast_mis_ended(when_all.make_continuation());
+    }
+
+    network[0].start_fast_mis();
+    network[1].start_fast_mis();
+    network[2].start_fast_mis();
+
+    ios.run();
+  }
+}
+
+//------------------------------------------------------------------------------
 BOOST_AUTO_TEST_CASE(add_nodes) {
-  for (unsigned int i = 0; i < 100; i++) {
+  for (unsigned int i = 0; i < 10; i++) {
     Random::instance().initialize_with_random_seed();
     log("New seed: ", Random::instance().get_seed());
 
