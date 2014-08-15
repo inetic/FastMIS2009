@@ -269,6 +269,8 @@ void Node::on_receive_update2() {
         c.knows_my_result = true;
         c.schedule_send<ResultMsg>(_leader_status);
         });
+
+    on_receive_result();
   }
   else {
     _state = numbers;

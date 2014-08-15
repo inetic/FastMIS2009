@@ -383,6 +383,36 @@ BOOST_AUTO_TEST_CASE(two_nodes_fast_mis) {
 }
 
 //------------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(one_node_networks) {
+  for (unsigned int i = 0; i < 10; i++) {
+    Random::instance().initialize_with_random_seed();
+    log("New seed: ", Random::instance().get_seed());
+
+    asio::io_service ios;
+
+    Network network(ios);
+
+    network.generate_connected(1);
+
+    log("----------------------------------");
+    log(network);
+    log("----------------------------------");
+
+    asio::deadline_timer timer(ios);
+
+    network.start_fast_mis([&]() {
+        BOOST_REQUIRE(network.every_node_stopped());
+        BOOST_REQUIRE(network.every_node_decided());
+        BOOST_REQUIRE(network.every_neighbor_decided());
+        BOOST_REQUIRE(network.is_MIS());
+        network.shutdown();
+        });
+
+    ios.run();
+  }
+}
+
+//------------------------------------------------------------------------------
 BOOST_AUTO_TEST_CASE(many_3_node_networks) {
   for (unsigned int i = 0; i < 30; i++) {
     Random::instance().initialize_with_random_seed();

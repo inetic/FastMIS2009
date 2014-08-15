@@ -32,6 +32,10 @@ public:
     return dist(_generator);
   }
 
+  bool generate_bool() {
+    return generate_int(0, 1) == 1;
+  }
+
   // TODO: The algorithm probably shouldn't use floats.
   float generate_float() {
     boost::random::uniform_real_distribution<> dist(0.f, 1.f);
