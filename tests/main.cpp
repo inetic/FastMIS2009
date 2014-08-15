@@ -443,4 +443,42 @@ BOOST_AUTO_TEST_CASE(many_5_node_networks) {
 }
 
 //------------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(multirun) {
+  for (unsigned int i = 0; i < 10; i++) {
+    Random::instance().initialize_with_random_seed();
+    log("New seed: ", Random::instance().get_seed());
+
+    asio::io_service ios;
+
+    Network network(ios);
+
+    network.generate_connected(5);
+
+    log("----------------------------------");
+    log(network);
+    log("----------------------------------");
+
+    asio::deadline_timer timer(ios);
+
+    int iterations_left = 5;
+
+    network.start_fast_mis([&]() {
+        BOOST_REQUIRE(network.every_node_stopped());
+        BOOST_REQUIRE(network.every_node_decided());
+        BOOST_REQUIRE(network.every_neighbor_decided());
+        BOOST_REQUIRE(network.is_MIS());
+
+        if (--iterations_left <= 0) {
+          network.shutdown();
+          return;
+        }
+
+        network.start_fast_mis();
+        });
+
+    ios.run();
+  }
+}
+
+//------------------------------------------------------------------------------
 

@@ -46,6 +46,7 @@ private:
 
   boost::asio::io_service& _io_service;
   Nodes                    _nodes;
+  std::function<void()>    _on_algorithm_completed;
 };
 
 std::ostream& operator<<(std::ostream& os, const Network&);

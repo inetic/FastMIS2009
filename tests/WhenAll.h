@@ -11,6 +11,8 @@ public:
   {}
 
   std::function<void()> make_continuation() {
+    if (!_handler) return [](){};
+
     auto handler = _handler;
     auto count   = _instance_count;
 

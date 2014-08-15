@@ -133,28 +133,29 @@ std::ostream& operator<<(std::ostream& os, const Network& g) {
 void Network::start_fast_mis(const std::function<void()>& handler) {
   if (_nodes.empty()) return;
 
+  _on_algorithm_completed = handler;
+
   WhenAll when_all(handler);
 
   for (auto& node : _nodes) {
     node.on_fast_mis_ended(when_all.make_continuation());
   }
 
-  start_fast_mis();
-}
-
-void Network::start_fast_mis() {
-  if (_nodes.empty()) return;
-
   std::vector<Graph> graphs = build_graph().connected_subgraphs();
 
   for (const auto& g : graphs) {
     assert(!g.nodes.empty());
     auto first_node_id = g.nodes.begin()->id;
-    auto first_node_i = find_if( _nodes.begin(), _nodes.end()
-                               , [&](const Node& n) { return n.id() == first_node_id; });
+    auto first_node_i = find_if
+      ( _nodes.begin(), _nodes.end()
+      , [&](const Node& n) { return n.id() == first_node_id; });
 
     assert(first_node_i != _nodes.end());
     first_node_i->start_fast_mis();
   }
+}
+
+void Network::start_fast_mis() {
+  start_fast_mis(_on_algorithm_completed);
 }
 
