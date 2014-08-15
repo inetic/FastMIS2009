@@ -27,19 +27,23 @@ public:
 
   Node& operator[](size_t i) { return _nodes[i]; }
 
-  size_t size() const { return _nodes.size(); }
 
   void start_fast_mis(const std::function<void()>&);
   void start_fast_mis();
 
   void extract_connected(Network&);
 
+  size_t size() const { return _nodes.size(); }
   bool empty() const { return _nodes.empty(); }
 
   Graph build_graph() const;
 
+  void add_random_node();
+  void shutdown_random_node();
+
 private:
   void extract_connected(Network&, Nodes::iterator);
+  Nodes::iterator find(ID);
 
 private:
   friend std::ostream& operator<<(std::ostream&, const Network&);

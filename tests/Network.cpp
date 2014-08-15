@@ -78,7 +78,7 @@ Graph Network::build_graph() const {
 }
 
 bool Network::is_MIS() const {
-  std::vector<Graph> graphs = build_graph().connected_subgraphs();
+  vector<Graph> graphs = build_graph().connected_subgraphs();
 
   for (const auto& graph : graphs) {
     if (!graph.is_MIS()) { return false; }
@@ -141,14 +141,12 @@ void Network::start_fast_mis(const std::function<void()>& handler) {
     node.on_fast_mis_ended(when_all.make_continuation());
   }
 
-  std::vector<Graph> graphs = build_graph().connected_subgraphs();
+  vector<Graph> graphs = build_graph().connected_subgraphs();
 
   for (const auto& g : graphs) {
     assert(!g.nodes.empty());
     auto first_node_id = g.nodes.begin()->id;
-    auto first_node_i = find_if
-      ( _nodes.begin(), _nodes.end()
-      , [&](const Node& n) { return n.id() == first_node_id; });
+    auto first_node_i = find(first_node_id);
 
     assert(first_node_i != _nodes.end());
     first_node_i->start_fast_mis();
@@ -158,4 +156,41 @@ void Network::start_fast_mis(const std::function<void()>& handler) {
 void Network::start_fast_mis() {
   start_fast_mis(_on_algorithm_completed);
 }
+
+Network::Nodes::iterator Network::find(ID id) {
+  return find_if( _nodes.begin(), _nodes.end()
+                , [id](const Node& n) { return n.id() == id; });
+}
+
+void Network::add_random_node() {
+  _nodes.push_back(new Node(_io_service));
+
+  if (size() == 1) return;
+
+  auto& n           = _nodes.back();
+  auto& random      = Random::instance();
+  size_t edge_count = random.generate_int(0, (size() - 1)/2 + 1);
+
+  for (size_t i = 0; i < edge_count; ++i) {
+    size_t m_id = random.generate_int(0, size() - 2);
+    auto&  m    = _nodes[m_id];
+    assert(m.id() != n.id());
+    n.connect(m.local_endpoint());
+    m.connect(n.local_endpoint());
+  }
+
+  vector<Graph> graphs = build_graph().connected_subgraphs();
+
+  for (auto& graph : graphs) {
+    WhenAll when_all(_on_algorithm_completed);
+
+    for (auto& graph_node : graph.nodes) {
+      auto& node = *find(graph_node.id);
+      node.on_fast_mis_ended(when_all.make_continuation());
+    }
+  }
+
+  n.start_fast_mis();
+}
+
 
