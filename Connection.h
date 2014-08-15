@@ -18,7 +18,7 @@ class Connection {
 public:
   Connection(Node&, Endpoint remote_endpoint);
 
-  Connection(const Connection&) = delete;
+  Connection(const Connection&)                  = delete;
   const Connection& operator=(const Connection&) = delete;
 
   void receive_data(const std::string&);

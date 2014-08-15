@@ -80,10 +80,10 @@ Connection& Node::create_connection(Endpoint endpoint) {
     return *c_i->second;
   }
 
-  auto c = make_shared<Connection>(*this, endpoint);
-  _connections[endpoint] = c;
+  auto c = unique_ptr<Connection>(new Connection(*this, endpoint));
+  auto pair = _connections.emplace(make_pair(endpoint, move(c)));
 
-  return *c;
+  return *pair.first->second;
 }
 
 void Node::connect(Endpoint remote_endpoint) {
@@ -99,7 +99,7 @@ bool Node::is_connected_to(Endpoint remote_endpoint) const {
 }
 
 template<class Message, class... Args> void Node::broadcast_contenders(Args... args) {
-  for (auto pair : _connections) {
+  for (auto& pair : _connections) {
     auto& c = *pair.second;
     if (!c.is_contender) continue;
     c.schedule_send<Message>(args...);
@@ -294,4 +294,6 @@ std::ostream& operator<<(std::ostream& os, const Node& node) {
   }
   return os;
 }
+
+Node::~Node() {}
 

@@ -17,10 +17,9 @@ class Node {
 private:
   enum State { idle, numbers, updates1, updates2 };
 
-  using ConnectionPtr = std::shared_ptr<Connection>;
-  // TODO: Do I need to store connections as pointers?
-  using Connections = std::map<ID, ConnectionPtr>;
-  using Duration    = boost::posix_time::time_duration;
+  using ConnectionPtr = std::unique_ptr<Connection>;
+  using Connections   = std::map<ID, ConnectionPtr>;
+  using Duration      = boost::posix_time::time_duration;
 
 public:
   Node(boost::asio::io_service& io_service);
@@ -62,8 +61,10 @@ public:
   void set_ping_timeout(Duration duration) { _ping_timeout = duration; }
   void set_max_missed_ping_count(size_t n) { _max_missed_ping_count = n; }
 
-  template<class F> void each_connection(const F&f)       { for (auto p : _connections) { f(*p.second); } }
-  template<class F> void each_connection(const F&f) const { for (auto p : _connections) { f(*p.second); } }
+  template<class F> void each_connection(const F&f)       { for (auto& p : _connections) { f(*p.second); } }
+  template<class F> void each_connection(const F&f) const { for (const auto& p : _connections) { f(*p.second); } }
+
+  ~Node();
 
 private:
   void receive_data();
