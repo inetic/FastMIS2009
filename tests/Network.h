@@ -30,6 +30,7 @@ public:
   size_t size() const { return _nodes.size(); }
 
   void start_fast_mis(const std::function<void()>&);
+  void start_fast_mis();
 
   void extract_connected(Network&);
 
