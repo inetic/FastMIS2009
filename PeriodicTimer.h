@@ -31,6 +31,8 @@ public:
         });
   }
 
+  Duration duration() const { return _duration; }
+  void set_duration(Duration duration) { _duration = duration; }
 private:
   void on_timeout() {
     using namespace boost::posix_time;

@@ -4,6 +4,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio.hpp>
+#include <cmath>
 #include "Random.h"
 #include "Network.h"
 #include "constants.h"
@@ -267,7 +268,8 @@ BOOST_AUTO_TEST_CASE(disconnect_two_connected_nodes) {
 
       node0.shutdown();
 
-      timer.expires_from_now(ping_timeout * max_missed_ping_count * 2);
+      timer.expires_from_now
+        (ping_timeout * pow(2, max_missed_ping_count) * 2);
 
       timer.async_wait([&](Error) {
         BOOST_REQUIRE(!node1.is_connected_to(node0_ep));
@@ -339,7 +341,8 @@ BOOST_AUTO_TEST_CASE(disconnect_three_connected_nodes) {
 
       node0.shutdown();
 
-      timer.expires_from_now(ping_timeout * max_missed_ping_count * 2);
+      timer.expires_from_now
+        (ping_timeout * pow(2, max_missed_ping_count) * 2);
 
       timer.async_wait([&](Error) {
         BOOST_REQUIRE(!node0.is_connected_to(node1_ep));
@@ -470,6 +473,35 @@ BOOST_AUTO_TEST_CASE(many_5_node_networks) {
 
     ios.run();
   }
+}
+
+//------------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(big_network) {
+  Random::instance().initialize_with_random_seed();
+  log("New seed: ", Random::instance().get_seed());
+
+  asio::io_service ios;
+
+  Network network(ios);
+
+  auto& random = Random::instance();
+  network.generate_connected(random.generate_int(200, 300), 5);
+
+  log("----------------------------------");
+  log(network);
+  log("----------------------------------");
+
+  asio::deadline_timer timer(ios);
+
+  network.start_fast_mis([&]() {
+      BOOST_REQUIRE(network.every_node_stopped());
+      BOOST_REQUIRE(network.every_node_decided());
+      BOOST_REQUIRE(network.every_neighbor_decided());
+      BOOST_REQUIRE(network.is_MIS());
+      network.shutdown();
+      });
+
+  ios.run();
 }
 
 //------------------------------------------------------------------------------

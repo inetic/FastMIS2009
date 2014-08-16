@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include "Connection.h"
 #include "Node.h"
 #include "constants.h"
@@ -63,6 +64,10 @@ void Connection::on_tick() {
 
   ++_missed_ping_count;
 
+  if (_missed_ping_count > 2) {
+    _periodic_timer.set_duration(_periodic_timer.duration()*2);
+  }
+
   if (!_tx_messages.empty()) {
     send_front_message();
   }
@@ -106,7 +111,17 @@ void Connection::use_message(const ResultMsg& msg) {
 
 //------------------------------------------------------------------------------
 void Connection::keep_alive() {
+  using namespace pstime;
+
   _missed_ping_count = 0;
+
+  auto default_d = milliseconds(PING_TIMEOUT_MS);
+  auto current_d = _periodic_timer.duration();
+
+  if (current_d > default_d) {
+    auto new_d = max<time_duration>(default_d, current_d - (default_d*0.5));
+    _periodic_timer.set_duration(new_d);
+  }
 }
 
 //------------------------------------------------------------------------------

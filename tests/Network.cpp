@@ -45,7 +45,7 @@ void Network::generate_connected(size_t node_count, float exp_neighbors) {
 
   if (exp_neighbors > 0.1) {
     // Add few more connections for good measure
-    float stop_probability = 1.0 / exp_neighbors;
+    float stop_probability = 1.0 / (exp_neighbors + 1);
 
     for (size_t i = 0; i < _nodes.size(); ++i) {
       while (random.generate_float() >= stop_probability) {
