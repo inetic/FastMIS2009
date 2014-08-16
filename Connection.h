@@ -33,7 +33,6 @@ public:
     if (was_empty) send_front_message();
   }
 
-  //template<class Msg> void receive(const Msg&);
   template<class Msg> void receive(const Msg& msg) {
     assert(msg.sequence_number <= _rx_sequence_id + 1);
 

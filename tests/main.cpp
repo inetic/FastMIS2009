@@ -392,7 +392,7 @@ BOOST_AUTO_TEST_CASE(one_node_networks) {
 
     Network network(ios);
 
-    network.generate_connected(1);
+    network.generate_connected(1, 0);
 
     log("----------------------------------");
     log(network);
@@ -414,7 +414,7 @@ BOOST_AUTO_TEST_CASE(one_node_networks) {
 
 //------------------------------------------------------------------------------
 BOOST_AUTO_TEST_CASE(many_3_node_networks) {
-  for (unsigned int i = 0; i < 30; i++) {
+  for (unsigned int i = 0; i < 10; i++) {
     Random::instance().initialize_with_random_seed();
     log("New seed: ", Random::instance().get_seed());
 
@@ -422,7 +422,7 @@ BOOST_AUTO_TEST_CASE(many_3_node_networks) {
 
     Network network(ios);
 
-    network.generate_connected(3);
+    network.generate_connected(3, 1.5);
 
     log("----------------------------------");
     log(network);
@@ -444,7 +444,7 @@ BOOST_AUTO_TEST_CASE(many_3_node_networks) {
 
 //------------------------------------------------------------------------------
 BOOST_AUTO_TEST_CASE(many_5_node_networks) {
-  for (unsigned int i = 0; i < 30; i++) {
+  for (unsigned int i = 0; i < 10; i++) {
     Random::instance().initialize_with_random_seed();
     log("New seed: ", Random::instance().get_seed());
 
@@ -452,7 +452,7 @@ BOOST_AUTO_TEST_CASE(many_5_node_networks) {
 
     Network network(ios);
 
-    network.generate_connected(5);
+    network.generate_connected(5, 2.5);
 
     log("----------------------------------");
     log(network);
@@ -482,7 +482,7 @@ BOOST_AUTO_TEST_CASE(multirun) {
 
     Network network(ios);
 
-    network.generate_connected(5);
+    network.generate_connected(5, 2.5);
 
     log("----------------------------------");
     log(network);
@@ -520,7 +520,7 @@ BOOST_AUTO_TEST_CASE(concurrent_starts) {
 
     Network network(ios);
 
-    network.generate_connected(7);
+    network.generate_connected(7, 3.5);
 
     log("----------------------------------");
     log(network);
@@ -560,7 +560,7 @@ BOOST_AUTO_TEST_CASE(add_nodes) {
     Network network(ios);
 
     const int node_start_count = 5;
-    network.generate_connected(node_start_count);
+    network.generate_connected(node_start_count, (float) node_start_count / 2);
 
     log("----------------------------------");
     log(network);
@@ -600,7 +600,7 @@ BOOST_AUTO_TEST_CASE(remove_nodes) {
 
     Network network(ios);
 
-    network.generate_connected(5);
+    network.generate_connected(5, 2.5);
 
     log("----------------------------------");
     log(network);

@@ -27,29 +27,34 @@ void Network::add_nodes(size_t node_count) {
   }
 }
 
-void Network::generate_connected(size_t node_count) {
+void Network::generate_connected(size_t node_count, float exp_neighbors) {
   add_nodes(node_count);
 
   if (node_count <= 1) return;
 
   set<pair<size_t, size_t>> connections;
+  auto& random = Random::instance();
 
   // Generate minimal connected graph
   for (size_t i = 1; i < _nodes.size(); ++i) {
-    size_t j = get_random_number(i);
+    size_t j = random.generate_int(0, i - 1);
 
     if (i < j) { connections.insert(make_pair(i,j)); }
     else       { connections.insert(make_pair(j,i)); }
   }
 
-  // Add few more connections for good measure
-  for (size_t i = 0; i < _nodes.size(); ++i) {
-    while (get_random_number(_nodes.size()) < _nodes.size() / 2) {
-      size_t j = i;
-      while (j == i) { j = get_random_number(_nodes.size()); }
+  if (exp_neighbors > 0.1) {
+    // Add few more connections for good measure
+    float stop_probability = 1.0 / exp_neighbors;
 
-      if (i < j) { connections.insert(make_pair(i,j)); }
-      else       { connections.insert(make_pair(j,i)); }
+    for (size_t i = 0; i < _nodes.size(); ++i) {
+      while (random.generate_float() >= stop_probability) {
+        size_t j = i;
+        while (j == i) { j = get_random_number(_nodes.size()); }
+
+        if (i < j) { connections.insert(make_pair(i,j)); }
+        else       { connections.insert(make_pair(j,i)); }
+      }
     }
   }
 

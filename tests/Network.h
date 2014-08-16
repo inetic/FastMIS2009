@@ -16,7 +16,7 @@ public:
   Network(const Network&) = delete;
   Network& operator=(const Network&) = delete;
 
-  void generate_connected(size_t node_count);
+  void generate_connected(size_t node_count, float exp_neighbors);
   void add_nodes(size_t node_count);
   void shutdown();
   bool is_MIS() const;
