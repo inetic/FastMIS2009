@@ -45,6 +45,9 @@ public:
   void remove_dead_nodes();
   void remove_singletons();
 
+  void set_ping_timeout(boost::posix_time::time_duration);
+  void set_max_missed_ping_count(unsigned int);
+
 private:
   void extract_connected(Network&, Nodes::iterator);
   Nodes::iterator find(ID);

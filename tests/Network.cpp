@@ -237,3 +237,15 @@ void Network::remove_singletons() {
   _nodes.erase_if([](const Node& n) { return n.size() == 0; });
 }
 
+void Network::set_ping_timeout(boost::posix_time::time_duration d) {
+  for (auto& node : _nodes) {
+    node.set_ping_timeout(d);
+  }
+}
+
+void Network::set_max_missed_ping_count(unsigned int c) {
+  for (auto& node : _nodes) {
+    node.set_max_missed_ping_count(c);
+  }
+}
+

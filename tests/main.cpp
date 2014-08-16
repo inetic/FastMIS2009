@@ -634,6 +634,9 @@ BOOST_AUTO_TEST_CASE(remove_nodes) {
 
     network.generate_connected(5, 2.5);
 
+    network.set_ping_timeout(milliseconds(10));
+    network.set_max_missed_ping_count(2);
+
     log("----------------------------------");
     log(network);
     log("----------------------------------");
@@ -641,13 +644,8 @@ BOOST_AUTO_TEST_CASE(remove_nodes) {
     asio::deadline_timer timer(ios);
 
     network.start_fast_mis([&]() {
-        //log("------- finished round -----------");
-        //log(network);
         network.remove_dead_nodes();
-        network.remove_singletons(); // They would not trigger re-election.
-        //log("------ after dead removal --------");
-        //log(network);
-        //log("----------------------------------");
+
         BOOST_REQUIRE(network.every_node_stopped());
         BOOST_REQUIRE(network.every_node_decided());
         BOOST_REQUIRE(network.every_neighbor_decided());
@@ -657,6 +655,8 @@ BOOST_AUTO_TEST_CASE(remove_nodes) {
           network.shutdown();
           return;
         }
+
+        network.remove_singletons(); // They would not trigger re-election.
 
         network.shutdown_random_node();
         });
