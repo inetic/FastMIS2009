@@ -39,11 +39,13 @@ void Node::receive_data() {
   };
 
   auto server_data = make_shared<ServerData>();
+  auto destroyed   = _destroy_guard.indicator();
 
   _socket.async_receive_from
     ( asio::buffer(server_data->data)
     , server_data->sender_endpoint
-    , [this, server_data](const ErrorCode& ec, std::size_t size) {
+    , [this, server_data, destroyed](const ErrorCode& ec, std::size_t size) {
+        if (destroyed) return;
         if (_was_shut_down) return;
 
         if (ec) {
@@ -69,7 +71,7 @@ void Node::use_data(Endpoint sender, string&& data) {
   }
   catch (const runtime_error& e) {
     log(id(), " Problem reading message: ", e.what());
-    disconnect(sender);
+    connection_lost(sender);
   }
 }
 
@@ -90,8 +92,9 @@ void Node::connect(Endpoint remote_endpoint) {
   create_connection(remote_endpoint);
 }
 
-void Node::disconnect(Endpoint remote_endpoint) {
+void Node::connection_lost(Endpoint remote_endpoint) {
   _connections.erase(remote_endpoint);
+  start_fast_mis();
 }
 
 bool Node::is_connected_to(Endpoint remote_endpoint) const {
@@ -176,22 +179,32 @@ bool Node::has_leader_neighbor() const {
 }
 
 void Node::start_fast_mis() {
-  for (const auto& pair : _connections) {
-    auto& c = *pair.second;
-    // TODO: This should be in Connection
-    c.knows_my_result = false;
-    c.random_number = false;
-    c.update1.reset();
-    c.update2.reset();
-    c.result.reset();
-    c.is_contender = true;
+  // This function get called either by the user or is triggered
+  // when another node gets disconnected from the network. In the
+  // second case it is possible that another node has detected
+  // this disconnection sooner and already started the algorithm
+  // by sending us the StartMsg message. In such case we've
+  // already reset all these variables and they might have even
+  // been set to new values by the algorithm, so it would
+  // be a bug to reset them again.
+  if (!_fast_mis_started) {
+    for (const auto& pair : _connections) {
+      auto& c = *pair.second;
+      // TODO: This should be in Connection
+      c.knows_my_result = false;
+      c.random_number = false;
+      c.update1.reset();
+      c.update2.reset();
+      c.result.reset();
+      c.is_contender = true;
+    }
+    _state = numbers;
+    reset_all_numbers();
+    _leader_status = LeaderStatus::undecided;
+    broadcast_contenders<StartMsg>();
   }
 
-  _state = numbers;
-  reset_all_numbers();
-  _leader_status = LeaderStatus::undecided;
   _fast_mis_started = true;
-  broadcast_contenders<StartMsg>();
   on_receive_number();
 }
 
@@ -290,7 +303,7 @@ void Node::reset_all_numbers() {
 }
 
 std::ostream& operator<<(std::ostream& os, const Node& node) {
-  os << node.id() << ": ";
+  os << node.id() << "(" << node._leader_status << "): ";
   for (const auto& pair : node._connections) {
     os << pair.second->id() << " ";
   }

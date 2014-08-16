@@ -193,4 +193,42 @@ void Network::add_random_node() {
   n.start_fast_mis();
 }
 
+void Network::shutdown_random_node() {
+  if (empty()) return;
+
+  auto& random   = Random::instance();
+  size_t pick_i  = random.generate_int(0, size() - 1);
+  Node&  pick    = _nodes[pick_i];
+
+  log("Removing ", pick.id());
+
+  vector<Graph> graphs = build_graph().connected_subgraphs();
+
+  WhenAll when_all(_on_algorithm_completed);
+
+  for (auto& graph : graphs) {
+    // Subgraphs which are not connected to 'pick' will not
+    // re-elect.
+    if (!graph.nodes.count(pick.id())) continue;
+
+    for (auto& graph_node : graph.nodes) {
+      auto& node = *find(graph_node.id);
+
+      // The picked node will not decide.
+      if (node.id() == pick.id()) continue;
+
+      node.on_fast_mis_ended(when_all.make_continuation());
+    }
+  }
+
+  pick.shutdown();
+}
+
+void Network::remove_dead_nodes() {
+  _nodes.erase_if([](const Node& n) { return n.is_dead(); });
+}
+
+void Network::remove_singletons() {
+  _nodes.erase_if([](const Node& n) { return n.size() == 0; });
+}
 

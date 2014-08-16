@@ -42,6 +42,9 @@ public:
   void add_random_node();
   void shutdown_random_node();
 
+  void remove_dead_nodes();
+  void remove_singletons();
+
 private:
   void extract_connected(Network&, Nodes::iterator);
   Nodes::iterator find(ID);

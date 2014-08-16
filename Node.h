@@ -9,6 +9,7 @@
 #include "Endpoint.h"
 #include "ID.h"
 #include "LeaderStatus.h"
+#include "DestroyGuard.h"
 
 class Connection;
 class Message;
@@ -34,7 +35,6 @@ public:
 
   void shutdown();
   void connect(Endpoint);
-  void disconnect(Endpoint);
 
   Endpoint local_endpoint() const { return _socket.local_endpoint(); }
   boost::asio::io_service& get_io_service() { return _io_service; }
@@ -66,6 +66,9 @@ public:
 
   ~Node();
 
+  bool is_dead() const { return _was_shut_down; }
+  size_t size() const { return _connections.size(); }
+
 private:
   void receive_data();
   void use_data(Endpoint sender, std::string&&);
@@ -94,6 +97,8 @@ private:
 
   void reset_all_numbers();
 
+  void connection_lost(Endpoint);
+
 private:
   friend std::ostream& operator<<(std::ostream&, const Node&);
 
@@ -105,6 +110,8 @@ private:
 
   Duration      _ping_timeout;
   unsigned int  _max_missed_ping_count;
+
+  DestroyGuard  _destroy_guard;
 
   // FastMIS related data.
   State                  _state;

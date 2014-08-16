@@ -55,7 +55,7 @@ void Connection::on_tick() {
   if (_missed_ping_count > _node._max_missed_ping_count) {
     // Disonnection will destroy this object, so make sure you
     // return immediately.
-    _node.disconnect(_remote_endpoint);
+    _node.connection_lost(_remote_endpoint);
     return;
   }
 

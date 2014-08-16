@@ -591,4 +591,52 @@ BOOST_AUTO_TEST_CASE(add_nodes) {
 }
 
 //------------------------------------------------------------------------------
+BOOST_AUTO_TEST_CASE(remove_nodes) {
+  for (unsigned int i = 0; i < 10; i++) {
+    Random::instance().initialize_with_random_seed();
+    //Random::instance().initialize_with_seed(2210072539);
+    log("New seed: ", Random::instance().get_seed());
+
+    asio::io_service ios;
+
+    Network network(ios);
+
+    network.generate_connected(5);
+
+    log("----------------------------------");
+    log(network);
+    log("----------------------------------");
+
+    asio::deadline_timer timer(ios);
+
+    size_t k = 0;
+    network.start_fast_mis([&]() {
+        ++k;
+        log("------- finished round -----------");
+        log(network);
+        network.remove_dead_nodes();
+        network.remove_singletons(); // They would not trigger re-election.
+        log("------ after dead removal --------");
+        log(network);
+        log("----------------------------------");
+        BOOST_REQUIRE(network.every_node_stopped());
+        BOOST_REQUIRE(network.every_node_decided());
+        BOOST_REQUIRE(network.every_neighbor_decided());
+        BOOST_REQUIRE(network.is_MIS());
+
+
+        if (network.empty()) {
+          network.shutdown();
+          return;
+        }
+
+        network.shutdown_random_node();
+        });
+
+    ios.run();
+    log("uuuuuuuuuuuuuuu ", k);
+  }
+}
+
+//------------------------------------------------------------------------------
 

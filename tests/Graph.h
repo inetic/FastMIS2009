@@ -31,4 +31,7 @@ struct Graph {
   Nodes nodes;
 };
 
+std::ostream& operator<<(std::ostream& os, const Graph::Node&);
+std::ostream& operator<<(std::ostream& os, const Graph&);
+
 #endif // ifndef __GRAPH_H__

@@ -71,3 +71,21 @@ bool Graph::is_MIS() const {
   return true;
 }
 
+std::ostream& operator<<(std::ostream& os, const Graph::Node& node) {
+  os << node.id << "(" << node.leader_status << "): ";
+  for (auto id : node.neighbors) {
+    os << id << " ";
+  }
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Graph& g) {
+  for (auto i = g.nodes.begin(); i != g.nodes.end(); ++i) {
+    os << *i;
+    if (i != --g.nodes.end()) {
+      os << endl;
+    }
+  }
+  return os;
+}
+

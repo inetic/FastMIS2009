@@ -29,25 +29,15 @@ inline std::ostream& operator<<(std::ostream& os, const Message& msg) {
 
 //------------------------------------------------------------------------------
 struct PingMsg : Message {
+  using Message::Message;
   std::string label() const override { return "ping"; }
-
-  PingMsg(uint32_t sequence_number, uint32_t ack_sequence_number)
-    : Message(sequence_number, ack_sequence_number) {}
-
-  PingMsg(std::istream& is) : Message(is) {}
-
   void to_stream(std::ostream&) const override {}
 };
 
 //------------------------------------------------------------------------------
 struct StartMsg : Message {
+  using Message::Message;
   std::string label() const override { return "start"; }
-
-  StartMsg(uint32_t sequence_number, uint32_t ack_sequence_number)
-    : Message(sequence_number, ack_sequence_number) {}
-
-  StartMsg(std::istream& is) : Message(is) {}
-
   void to_stream(std::ostream&) const override {}
 };
 
