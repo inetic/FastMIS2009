@@ -64,10 +64,15 @@ void Node::receive_data() {
 }
 
 void Node::use_data(Endpoint sender, string&& data) {
-  auto& c = create_connection(sender);
-
   try {
-    c.receive_data(data);
+    std::stringstream ss(data);
+    dispatch_message(ss
+        , [&](const PingMsg& msg)    { use_data(sender, msg); }
+        , [&](const StartMsg& msg)   { use_data(sender, msg); }
+        , [&](const NumberMsg& msg)  { use_data(sender, msg); }
+        , [&](const Update1Msg& msg) { use_data(sender, msg); }
+        , [&](const Update2Msg& msg) { use_data(sender, msg); }
+        , [&](const ResultMsg& msg)  { use_data(sender, msg); });
   }
   catch (const runtime_error& e) {
     log(id(), " Problem reading message: ", e.what());
@@ -75,20 +80,31 @@ void Node::use_data(Endpoint sender, string&& data) {
   }
 }
 
-Connection& Node::create_connection(Endpoint endpoint) {
-  auto c_i = _connections.find(endpoint);
+template<class Msg>
+void Node::use_data(Endpoint sender, const Msg& msg) {
+  auto c_i = _connections.find(sender);
 
-  if (c_i != _connections.end()) {
-    return *c_i->second;
+  if (c_i == _connections.end()) {
+    // Only the first message can be used to establish connection.
+    if (msg.sequence_number != 1) {
+      return;
+    }
+    c_i = create_connection(sender);
   }
 
+  auto& c = *c_i->second;
+  c.receive(msg);
+}
+
+Node::Connections::iterator Node::create_connection(Endpoint endpoint) {
   auto c = unique_ptr<Connection>(new Connection(*this, endpoint));
   auto pair = _connections.emplace(make_pair(endpoint, move(c)));
-
-  return *pair.first->second;
+  assert(pair.second);
+  return pair.first;
 }
 
 void Node::connect(Endpoint remote_endpoint) {
+  if (_connections.count(remote_endpoint)) return;
   create_connection(remote_endpoint);
 }
 

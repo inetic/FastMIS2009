@@ -21,12 +21,11 @@ public:
   Connection(const Connection&)                  = delete;
   const Connection& operator=(const Connection&) = delete;
 
-  void receive_data(const std::string&);
-
   ID id() const { return ID(_remote_endpoint); }
   ID node_id() const;
 
-  template<class Msg, class... Args> void schedule_send(Args... args) {
+  template<class Msg, class... Args>
+  void schedule_send(Args... args) {
     bool was_empty = _tx_messages.empty();
     Msg* msg = new Msg(++_tx_sequence_id, _rx_sequence_id, args...);
     log(node_id(), " -> ", id(), " ", msg->label(), " ", *msg);
@@ -34,11 +33,30 @@ public:
     if (was_empty) send_front_message();
   }
 
+  //template<class Msg> void receive(const Msg&);
+  template<class Msg> void receive(const Msg& msg) {
+    assert(msg.sequence_number <= _rx_sequence_id + 1);
+
+    ack_message(msg.ack_sequence_number);
+
+    if (msg.sequence_number == _rx_sequence_id + 1) {
+      // DEBUG
+      if (msg.label() != "ping") {
+        log(node_id(), " <- ", id(), " ", msg.label(), " ", msg);
+      }
+
+      keep_alive();
+      _rx_sequence_id = msg.sequence_number;
+      use_message(msg);
+    }
+    else if (msg.sequence_number == _rx_sequence_id) {
+      keep_alive();
+    }
+  }
+
 private:
   void keep_alive();
   void on_tick();
-
-  template<class Msg> void receive(const Msg&);
 
   void use_message(const PingMsg&);
   void use_message(const StartMsg&);

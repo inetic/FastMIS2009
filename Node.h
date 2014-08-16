@@ -72,7 +72,9 @@ public:
 private:
   void receive_data();
   void use_data(Endpoint sender, std::string&&);
-  Connection& create_connection(Endpoint);
+  template<class Msg> void use_data(Endpoint sender, const Msg& msg);
+
+  Connections::iterator create_connection(Endpoint);
 
   void on_receive_number();
   void on_received_start();

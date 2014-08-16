@@ -23,6 +23,8 @@ Connection::Connection(Node& node, Endpoint remote_endpoint)
   , knows_my_result(false)
   , is_contender(false)
 {
+  // The first message to establish connection.
+  schedule_send<PingMsg>();
 }
 
 //------------------------------------------------------------------------------
@@ -66,40 +68,6 @@ void Connection::on_tick() {
   }
   else {
     send(PingMsg(_tx_sequence_id, _rx_sequence_id));
-  }
-}
-
-//------------------------------------------------------------------------------
-void Connection::receive_data(const std::string& data) {
-  std::stringstream ss(data);
-
-  dispatch_message(ss
-      , [&](const PingMsg& msg)    { receive(msg); }
-      , [&](const StartMsg& msg)   { receive(msg); }
-      , [&](const NumberMsg& msg)  { receive(msg); }
-      , [&](const Update1Msg& msg) { receive(msg); }
-      , [&](const Update2Msg& msg) { receive(msg); }
-      , [&](const ResultMsg& msg)  { receive(msg); });
-}
-
-//------------------------------------------------------------------------------
-template<class Msg> void Connection::receive(const Msg& msg) {
-  assert(msg.sequence_number <= _rx_sequence_id + 1);
-
-  ack_message(msg.ack_sequence_number);
-
-  if (msg.sequence_number == _rx_sequence_id + 1) {
-    // DEBUG
-    if (msg.label() != "ping") {
-      log(_node.id(), " <- ", id(), " ", msg.label(), " ",msg);
-    }
-
-    keep_alive();
-    _rx_sequence_id = msg.sequence_number;
-    use_message(msg);
-  }
-  else if (msg.sequence_number == _rx_sequence_id) {
-    keep_alive();
   }
 }
 
