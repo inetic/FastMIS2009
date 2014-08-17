@@ -252,15 +252,15 @@ BOOST_AUTO_TEST_CASE(disconnect_two_connected_nodes) {
   auto node1_ep = node1.local_endpoint();
 
   // Makes the test finish quicker
-  unsigned int max_missed_ping_count = 5;
-  milliseconds ping_timeout(30);
+  unsigned int max_missed_ping_count = 3;
+  milliseconds ping_timeout(20);
 
   node1.set_ping_timeout(ping_timeout);
   node1.set_max_missed_ping_count(max_missed_ping_count);
 
   node0.connect(node1.local_endpoint());
 
-  asio::deadline_timer timer(ios, ping_timeout*5);
+  asio::deadline_timer timer(ios, ping_timeout*max_missed_ping_count);
 
   timer.async_wait([&](Error) {
       BOOST_REQUIRE(node0.is_connected_to(node1_ep));
@@ -269,7 +269,7 @@ BOOST_AUTO_TEST_CASE(disconnect_two_connected_nodes) {
       node0.shutdown();
 
       timer.expires_from_now
-        (ping_timeout * pow(2, max_missed_ping_count) * 2);
+        (ping_timeout * pow(2, max_missed_ping_count+2));
 
       timer.async_wait([&](Error) {
         BOOST_REQUIRE(!node1.is_connected_to(node0_ep));
@@ -316,8 +316,8 @@ BOOST_AUTO_TEST_CASE(disconnect_three_connected_nodes) {
   Node node2(ios);
 
   // Makes the test finish quicker
-  unsigned int max_missed_ping_count = 5;
-  milliseconds ping_timeout(30);
+  unsigned int max_missed_ping_count = 3;
+  milliseconds ping_timeout(20);
 
   node1.set_ping_timeout(ping_timeout);
   node1.set_max_missed_ping_count(max_missed_ping_count);
@@ -331,7 +331,7 @@ BOOST_AUTO_TEST_CASE(disconnect_three_connected_nodes) {
   node0.connect(node1.local_endpoint());
   node1.connect(node2.local_endpoint());
 
-  asio::deadline_timer timer(ios, milliseconds(5*PING_TIMEOUT_MS));
+  asio::deadline_timer timer(ios, milliseconds(3*PING_TIMEOUT_MS));
 
   timer.async_wait([&](Error) {
       BOOST_REQUIRE(node0.is_connected_to(node1_ep));
@@ -342,7 +342,7 @@ BOOST_AUTO_TEST_CASE(disconnect_three_connected_nodes) {
       node0.shutdown();
 
       timer.expires_from_now
-        (ping_timeout * pow(2, max_missed_ping_count) * 2);
+        (ping_timeout * pow(2, max_missed_ping_count + 1));
 
       timer.async_wait([&](Error) {
         BOOST_REQUIRE(!node0.is_connected_to(node1_ep));

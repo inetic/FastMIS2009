@@ -82,6 +82,10 @@ private:
 
   DestroyGuard              _destroy_guard;
 
+  // Increment geometrically, decrement linearly.
+  void increment_timer_duration();
+  void decrement_timer_duration();
+
 public:
   // FastMIS related data.
   bool                          knows_my_result;

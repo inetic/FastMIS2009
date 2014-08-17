@@ -55,6 +55,8 @@ void Connection::send_front_message() {
 
 //------------------------------------------------------------------------------
 void Connection::on_tick() {
+  ++_missed_ping_count;
+
   if (_missed_ping_count > _node._max_missed_ping_count) {
     // Disonnection will destroy this object, so make sure you
     // return immediately.
@@ -62,10 +64,8 @@ void Connection::on_tick() {
     return;
   }
 
-  ++_missed_ping_count;
-
-  if (_missed_ping_count > 2) {
-    _periodic_timer.set_duration(_periodic_timer.duration()*2);
+  if (_missed_ping_count > 1) {
+    increment_timer_duration();
   }
 
   if (!_tx_messages.empty()) {
@@ -111,17 +111,8 @@ void Connection::use_message(const ResultMsg& msg) {
 
 //------------------------------------------------------------------------------
 void Connection::keep_alive() {
-  using namespace pstime;
-
   _missed_ping_count = 0;
-
-  auto default_d = milliseconds(PING_TIMEOUT_MS);
-  auto current_d = _periodic_timer.duration();
-
-  if (current_d > default_d) {
-    auto new_d = max<time_duration>(default_d, current_d - (default_d*0.5));
-    _periodic_timer.set_duration(new_d);
-  }
+  decrement_timer_duration();
 }
 
 //------------------------------------------------------------------------------
@@ -130,6 +121,23 @@ void Connection::ack_message(uint32_t ack_sequence_number) {
 
   if (_tx_messages.front().sequence_number == ack_sequence_number) {
     _tx_messages.pop_front();
+  }
+}
+
+//------------------------------------------------------------------------------
+void Connection::increment_timer_duration() {
+  _periodic_timer.set_duration(_periodic_timer.duration()*2);
+}
+
+//------------------------------------------------------------------------------
+void Connection::decrement_timer_duration() {
+  using namespace pstime;
+  auto default_d = milliseconds(PING_TIMEOUT_MS);
+  auto current_d = _periodic_timer.duration();
+
+  if (current_d > default_d) {
+    auto new_d = max<time_duration>(default_d, current_d - (default_d*0.5));
+    _periodic_timer.set_duration(new_d);
   }
 }
 
